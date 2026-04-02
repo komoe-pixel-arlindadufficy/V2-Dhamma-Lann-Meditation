@@ -165,10 +165,14 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const files = e.target.files;
     if (!files) return;
 
-    const newBatch = Array.from(files).map((file) => {
+    const existingDays = records.map(r => Number(r.day_number) || 0);
+    const batchDays = batchFiles.map(b => Number(b.day_number) || 0);
+    const lastDay = Math.max(0, ...existingDays, ...batchDays);
+
+    const newBatch = Array.from(files).map((file, index) => {
       // Try to guess day number from filename if it starts with a number
       const match = file.name.match(/^(\d+)/);
-      const guessedDay = match ? match[1] : '';
+      const guessedDay = match ? match[1] : (lastDay + index + 1).toString();
       
       // Clean up filename for title
       const cleanTitle = file.name
@@ -184,6 +188,13 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     });
 
     setBatchFiles(prev => [...prev, ...newBatch]);
+    e.target.value = '';
+  };
+
+  const clearBatch = () => {
+    if (window.confirm('Clear all files from the batch?')) {
+      setBatchFiles([]);
+    }
   };
 
   const updateBatchField = (index: number, field: 'title' | 'day_number', value: string) => {
@@ -555,9 +566,19 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   exit={{ opacity: 0, y: -10 }}
                   className="glass-card p-6 md:p-8 rounded-[2rem] border-2 border-[#D4AF37]/30"
                 >
-                  <div className="flex items-center gap-3 mb-6">
-                    <Layers className="text-[#D4AF37] w-6 h-6" aria-hidden="true" />
-                    <h2 className="text-xl font-bold text-white">Batch Upload</h2>
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <Layers className="text-[#D4AF37] w-6 h-6" aria-hidden="true" />
+                      <h2 className="text-xl font-bold text-white">Batch Upload</h2>
+                    </div>
+                    {batchFiles.length > 0 && (
+                      <button 
+                        onClick={clearBatch}
+                        className="text-xs font-bold text-red-400/60 hover:text-red-400 uppercase tracking-widest transition-colors"
+                      >
+                        Clear All
+                      </button>
+                    )}
                   </div>
 
                   <div className="space-y-6">
@@ -721,32 +742,28 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   <p className="text-white/40 italic">No records found. Start by uploading Day 1.</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse" role="table" aria-label="Audio records table">
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left border-collapse table-fixed min-w-[500px]" role="table" aria-label="Audio records table">
                     <thead>
                       <tr className="border-b border-white/10">
-                        <th className="py-4 px-2 text-xs font-bold text-white/40 uppercase tracking-wider">Day</th>
+                        <th className="py-4 px-2 text-xs font-bold text-white/40 uppercase tracking-wider w-16">Day</th>
                         <th className="py-4 px-2 text-xs font-bold text-white/40 uppercase tracking-wider">Title</th>
-                        <th className="py-4 px-2 text-xs font-bold text-white/40 uppercase tracking-wider hidden md:table-cell">File Name</th>
-                        <th className="py-4 px-2 text-xs font-bold text-white/40 uppercase tracking-wider text-right">Actions</th>
+                        <th className="py-4 px-2 text-xs font-bold text-white/40 uppercase tracking-wider text-right w-32 sticky right-0 bg-[#041a13] z-10">Actions</th>
                       </tr>
                     </thead>
                     <tbody role="rowgroup">
                       {records.map((record) => (
                         <tr key={record.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
                           <td className="py-4 px-2">
-                            <span className="w-8 h-8 bg-[#D4AF37]/20 rounded-lg flex items-center justify-center text-[#D4AF37] font-bold text-xs">
+                            <span className="w-8 h-8 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-full flex items-center justify-center text-[#D4AF37] font-bold text-xs">
                               {record.day_number}
                             </span>
                           </td>
-                          <td className="py-4 px-2">
-                            <div className="text-white text-sm font-medium line-clamp-1">{record.title}</div>
-                            <div className="text-white/40 text-[10px] uppercase tracking-tighter">{record.date_string || 'No date'}</div>
+                          <td className="py-4 px-2 overflow-hidden">
+                            <div className="text-white text-sm font-medium truncate" title={record.title}>{record.title}</div>
+                            <div className="text-white/40 text-xs uppercase tracking-tighter truncate">{record.date_string || 'No date'}</div>
                           </td>
-                          <td className="py-4 px-2 hidden md:table-cell">
-                            <div className="text-white/40 text-xs truncate max-w-[150px]">{record.audio_file}</div>
-                          </td>
-                          <td className="py-4 px-2 text-right">
+                          <td className="py-4 px-2 text-right sticky right-0 bg-[#041a13]/90 backdrop-blur-sm z-10 group-hover:bg-[#0d4d3a]/90 transition-colors">
                             <div className="flex items-center justify-end gap-1">
                               <a 
                                 href={pb.files.getUrl(record, record.audio_file)} 
