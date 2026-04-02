@@ -14,7 +14,10 @@ import {
   Hash, 
   Type, 
   Grid3X3, 
-  X 
+  X,
+  Edit,
+  Trash2,
+  Layers
 } from 'lucide-react';
 
 const pb = new PocketBase('https://api.mindset-it.online');
@@ -42,6 +45,11 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [title, setTitle] = useState('');
   const [dateString, setDateString] = useState('');
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [editingRecord, setEditingRecord] = useState<MeditationRecord | null>(null);
+
+  // Batch Upload states
+  const [activeTab, setActiveTab] = useState<'single' | 'batch'>('single');
+  const [batchFiles, setBatchFiles] = useState<{ file: File; title: string; day_number: string }[]>([]);
 
   // List states
   const [records, setRecords] = useState<MeditationRecord[]>([]);
@@ -52,7 +60,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setFetchingRecords(true);
     try {
       const resultList = await pb.collection('meditations').getFullList<MeditationRecord>({
-        sort: '+day_number',
+        sort: 'day_number',
       });
       setRecords(resultList);
     } catch (err: any) {
@@ -97,18 +105,138 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const handleDayClick = (day: number, exists: boolean) => {
     if (!exists) {
+      setEditingRecord(null);
       setDayNumber(day.toString());
+      setTitle('');
+      setDateString('');
+      setAudioFile(null);
       // Scroll to form on mobile
       const formElement = document.getElementById('upload-form');
       if (formElement) {
         formElement.scrollIntoView({ behavior: 'smooth' });
       }
+    } else {
+      const record = records.find(r => r.day_number === day);
+      if (record) handleEdit(record);
     }
   };
 
-  const handleUpload = async (e: React.FormEvent) => {
+  const handleEdit = (record: MeditationRecord) => {
+    setEditingRecord(record);
+    setDayNumber(record.day_number.toString());
+    setTitle(record.title);
+    setDateString(record.date_string || '');
+    setAudioFile(null); // Keep existing file unless new one is selected
+    
+    const formElement = document.getElementById('upload-form');
+    if (formElement) {
+      formElement.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this meditation?')) return;
+    
+    setLoading(true);
+    setError(null);
+    try {
+      await pb.collection('meditations').delete(id);
+      setSuccess('Meditation deleted successfully.');
+      fetchRecords();
+      if (editingRecord?.id === id) {
+        cancelEdit();
+      }
+    } catch (err: any) {
+      setError(err.message || 'Delete failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingRecord(null);
+    setDayNumber('');
+    setTitle('');
+    setDateString('');
+    setAudioFile(null);
+  };
+
+  const handleBatchFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const newBatch = Array.from(files).map((file) => {
+      // Try to guess day number from filename if it starts with a number
+      const match = file.name.match(/^(\d+)/);
+      const guessedDay = match ? match[1] : '';
+      
+      // Clean up filename for title
+      const cleanTitle = file.name
+        .replace(/\.[^/.]+$/, "") // remove extension
+        .replace(/^\d+[\s-_]*/, "") // remove leading numbers and separators
+        .replace(/[-_]/g, " "); // replace separators with spaces
+
+      return {
+        file,
+        title: cleanTitle,
+        day_number: guessedDay
+      };
+    });
+
+    setBatchFiles(prev => [...prev, ...newBatch]);
+  };
+
+  const updateBatchField = (index: number, field: 'title' | 'day_number', value: string) => {
+    setBatchFiles(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const removeBatchFile = (index: number) => {
+    setBatchFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleBatchUpload = async () => {
+    if (batchFiles.length === 0) return;
+    
+    // Basic validation
+    const invalid = batchFiles.some(item => !item.title || !item.day_number);
+    if (invalid) {
+      setError('Please ensure all files have a title and day number.');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const uploadPromises = batchFiles.map(item => {
+        const formData = new FormData();
+        formData.append('day_number', item.day_number);
+        formData.append('title', item.title);
+        formData.append('audio_file', item.file);
+        return pb.collection('meditations').create(formData);
+      });
+
+      await Promise.all(uploadPromises);
+      
+      setSuccess(`Successfully uploaded ${batchFiles.length} meditations!`);
+      setBatchFiles([]);
+      fetchRecords();
+    } catch (err: any) {
+      setError(err.message || 'Batch upload failed. Some files may have been uploaded.');
+      fetchRecords(); // Refresh to see what succeeded
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!audioFile) {
+    if (!audioFile && !editingRecord) {
       setError('Please select an audio file.');
       return;
     }
@@ -121,20 +249,23 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     formData.append('day_number', dayNumber);
     formData.append('title', title);
     formData.append('date_string', dateString);
-    formData.append('audio_file', audioFile);
+    if (audioFile) {
+      formData.append('audio_file', audioFile);
+    }
 
     try {
-      await pb.collection('meditations').create(formData);
-      setSuccess(`Successfully uploaded Day ${dayNumber}!`);
-      // Reset form
-      setDayNumber('');
-      setTitle('');
-      setDateString('');
-      setAudioFile(null);
-      // Refresh list
+      if (editingRecord) {
+        await pb.collection('meditations').update(editingRecord.id, formData);
+        setSuccess(`Successfully updated Day ${dayNumber}!`);
+      } else {
+        await pb.collection('meditations').create(formData);
+        setSuccess(`Successfully uploaded Day ${dayNumber}!`);
+      }
+      
+      cancelEdit();
       fetchRecords();
     } catch (err: any) {
-      setError(err.message || 'Upload failed.');
+      setError(err.message || 'Operation failed.');
     } finally {
       setLoading(false);
     }
@@ -236,123 +367,291 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Upload Form */}
-          <section className="lg:col-span-5" id="upload-form" aria-labelledby="upload-title">
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="glass-card p-6 md:p-8 rounded-[2rem] border-2 border-[#D4AF37]/30 sticky top-8"
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <Upload className="text-[#D4AF37] w-6 h-6" aria-hidden="true" />
-                <h2 id="upload-title" className="text-xl font-bold text-white">Upload New Day</h2>
-              </div>
+          {/* Left Column: Forms */}
+          <section className="lg:col-span-5 space-y-6">
+            {/* Tab Switcher */}
+            <div className="flex p-1 bg-white/5 rounded-2xl border border-white/10">
+              <button 
+                onClick={() => setActiveTab('single')}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'single' ? 'bg-[#B8860B] text-white shadow-lg' : 'text-white/40 hover:text-white/60'}`}
+              >
+                <Upload className="w-4 h-4" />
+                Single
+              </button>
+              <button 
+                onClick={() => setActiveTab('batch')}
+                className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all ${activeTab === 'batch' ? 'bg-[#B8860B] text-white shadow-lg' : 'text-white/40 hover:text-white/60'}`}
+              >
+                <Layers className="w-4 h-4" />
+                Batch
+              </button>
+            </div>
 
-              <form onSubmit={handleUpload} className="space-y-5">
-                <div>
-                  <label htmlFor="day-number" className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase mb-2 ml-1">
-                    <Hash className="w-3 h-3" aria-hidden="true" /> Day Number
-                  </label>
-                  <input 
-                    id="day-number"
-                    type="number" 
-                    min="1" 
-                    max="365"
-                    value={dayNumber}
-                    onChange={(e) => setDayNumber(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#D4AF37]/50"
-                    placeholder="e.g. 1"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="title-my" className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase mb-2 ml-1">
-                    <Type className="w-3 h-3" aria-hidden="true" /> Title (Myanmar)
-                  </label>
-                  <input 
-                    id="title-my"
-                    type="text" 
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#D4AF37]/50"
-                    placeholder="တရားတော် အမည်"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label htmlFor="date-string" className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase mb-2 ml-1">
-                    <Calendar className="w-3 h-3" aria-hidden="true" /> Date String (Optional)
-                  </label>
-                  <input 
-                    id="date-string"
-                    type="text" 
-                    value={dateString}
-                    onChange={(e) => setDateString(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#D4AF37]/50"
-                    placeholder="e.g. 2024-01-01"
-                  />
-                </div>
-
-                <div>
-                  <label className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase mb-2 ml-1">
-                    <Music className="w-3 h-3" aria-hidden="true" /> Audio File
-                  </label>
-                  <div className="relative">
-                    <input 
-                      type="file" 
-                      accept="audio/*"
-                      onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
-                      className="hidden"
-                      id="audio-upload"
-                      required
-                    />
-                    <label 
-                      htmlFor="audio-upload"
-                      className="w-full bg-white/5 border-2 border-dashed border-white/10 rounded-xl px-4 py-8 text-white/60 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-white/10 hover:border-[#D4AF37]/30 transition-all"
-                    >
-                      {audioFile ? (
-                        <>
-                          <CheckCircle2 className="text-green-400 w-8 h-8" aria-hidden="true" />
-                          <span className="text-sm font-medium text-white">{audioFile.name}</span>
-                          <span className="text-xs uppercase">Click to change</span>
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="w-8 h-8 opacity-40" aria-hidden="true" />
-                          <span className="text-sm font-medium">Select Audio File</span>
-                          <span className="text-xs uppercase">MP3, WAV, M4A</span>
-                        </>
-                      )}
-                    </label>
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-3 flex items-center gap-2 text-red-200 text-xs" role="alert">
-                    <AlertCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
-                    {error}
-                  </div>
-                )}
-
-                {success && (
-                  <div className="bg-green-500/20 border border-green-500/50 rounded-xl p-3 flex items-center gap-2 text-green-200 text-xs" role="status">
-                    <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
-                    {success}
-                  </div>
-                )}
-
-                <button 
-                  type="submit" 
-                  disabled={loading}
-                  className="w-full bg-[#B8860B] hover:bg-[#9a700a] text-white font-bold py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
-                  aria-label={loading ? "Creating record..." : "Create Record"}
+            <AnimatePresence mode="wait">
+              {activeTab === 'single' ? (
+                <motion.div 
+                  key="single"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  id="upload-form"
+                  className="glass-card p-6 md:p-8 rounded-[2rem] border-2 border-[#D4AF37]/30"
                 >
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : 'Create Record'}
-                </button>
-              </form>
-            </motion.div>
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      {editingRecord ? (
+                        <Edit className="text-[#D4AF37] w-6 h-6" aria-hidden="true" />
+                      ) : (
+                        <Upload className="text-[#D4AF37] w-6 h-6" aria-hidden="true" />
+                      )}
+                      <h2 id="upload-title" className="text-xl font-bold text-white">
+                        {editingRecord ? `Edit Day ${editingRecord.day_number}` : 'Upload New Day'}
+                      </h2>
+                    </div>
+                    {editingRecord && (
+                      <button 
+                        onClick={cancelEdit}
+                        className="p-2 hover:bg-white/10 rounded-full text-white/60 transition-colors"
+                        aria-label="Cancel editing"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="space-y-5">
+                    <div>
+                      <label htmlFor="day-number" className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase mb-2 ml-1">
+                        <Hash className="w-3 h-3" aria-hidden="true" /> Day Number
+                      </label>
+                      <input 
+                        id="day-number"
+                        type="number" 
+                        min="1" 
+                        max="365"
+                        value={dayNumber}
+                        onChange={(e) => setDayNumber(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#D4AF37]/50"
+                        placeholder="e.g. 1"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="title-my" className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase mb-2 ml-1">
+                        <Type className="w-3 h-3" aria-hidden="true" /> Title (Myanmar)
+                      </label>
+                      <input 
+                        id="title-my"
+                        type="text" 
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#D4AF37]/50"
+                        placeholder="တရားတော် အမည်"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="date-string" className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase mb-2 ml-1">
+                        <Calendar className="w-3 h-3" aria-hidden="true" /> Date String (Optional)
+                      </label>
+                      <input 
+                        id="date-string"
+                        type="text" 
+                        value={dateString}
+                        onChange={(e) => setDateString(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#D4AF37]/50"
+                        placeholder="e.g. 2024-01-01"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase mb-2 ml-1">
+                        <Music className="w-3 h-3" aria-hidden="true" /> Audio File {editingRecord && '(Optional)'}
+                      </label>
+                      <div className="relative">
+                        <input 
+                          type="file" 
+                          accept="audio/*"
+                          onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
+                          className="hidden"
+                          id="audio-upload"
+                          required={!editingRecord}
+                        />
+                        <label 
+                          htmlFor="audio-upload"
+                          className="w-full bg-white/5 border-2 border-dashed border-white/10 rounded-xl px-4 py-8 text-white/60 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-white/10 hover:border-[#D4AF37]/30 transition-all"
+                        >
+                          {audioFile ? (
+                            <>
+                              <CheckCircle2 className="text-green-400 w-8 h-8" aria-hidden="true" />
+                              <span className="text-sm font-medium text-white">{audioFile.name}</span>
+                              <span className="text-xs uppercase">Click to change</span>
+                            </>
+                          ) : editingRecord ? (
+                            <>
+                              <Music className="w-8 h-8 opacity-40" aria-hidden="true" />
+                              <span className="text-sm font-medium text-white/80">Current: {editingRecord.audio_file}</span>
+                              <span className="text-xs uppercase">Click to upload new file</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="w-8 h-8 opacity-40" aria-hidden="true" />
+                              <span className="text-sm font-medium">Select Audio File</span>
+                              <span className="text-xs uppercase">MP3, WAV, M4A</span>
+                            </>
+                          )}
+                        </label>
+                      </div>
+                    </div>
+
+                    {error && (
+                      <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-3 flex items-center gap-2 text-red-200 text-xs" role="alert">
+                        <AlertCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+                        {error}
+                      </div>
+                    )}
+
+                    {success && (
+                      <div className="bg-green-500/20 border border-green-500/50 rounded-xl p-3 flex items-center gap-2 text-green-200 text-xs" role="status">
+                        <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
+                        {success}
+                      </div>
+                    )}
+
+                    <div className="flex gap-3">
+                      {editingRecord && (
+                        <button 
+                          type="button"
+                          onClick={cancelEdit}
+                          className="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-4 rounded-xl transition-all active:scale-95 border border-white/10"
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      <button 
+                        type="submit" 
+                        disabled={loading}
+                        className={`flex-[2] ${editingRecord ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#B8860B] hover:bg-[#9a700a]'} text-white font-bold py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50`}
+                        aria-label={loading ? "Processing..." : editingRecord ? "Update Record" : "Create Record"}
+                      >
+                        {loading ? (
+                          <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                        ) : editingRecord ? (
+                          'Update Record'
+                        ) : (
+                          'Create Record'
+                        )}
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              ) : (
+                <motion.div 
+                  key="batch"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="glass-card p-6 md:p-8 rounded-[2rem] border-2 border-[#D4AF37]/30"
+                >
+                  <div className="flex items-center gap-3 mb-6">
+                    <Layers className="text-[#D4AF37] w-6 h-6" aria-hidden="true" />
+                    <h2 className="text-xl font-bold text-white">Batch Upload</h2>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="relative">
+                      <input 
+                        type="file" 
+                        multiple 
+                        accept="audio/*"
+                        onChange={handleBatchFileChange}
+                        className="hidden"
+                        id="batch-upload"
+                      />
+                      <label 
+                        htmlFor="batch-upload"
+                        className="w-full bg-white/5 border-2 border-dashed border-white/10 rounded-xl px-4 py-8 text-white/60 flex flex-col items-center justify-center gap-2 cursor-pointer hover:bg-white/10 hover:border-[#D4AF37]/30 transition-all"
+                      >
+                        <Upload className="w-8 h-8 opacity-40" aria-hidden="true" />
+                        <span className="text-sm font-medium">Select Multiple Files</span>
+                        <span className="text-xs uppercase">MP3, WAV, M4A</span>
+                      </label>
+                    </div>
+
+                    {batchFiles.length > 0 && (
+                      <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                        {batchFiles.map((item, index) => (
+                          <div key={index} className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3 relative group">
+                            <button 
+                              onClick={() => removeBatchFile(index)}
+                              className="absolute top-2 right-2 p-1 text-white/20 hover:text-red-400 transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                            <div className="flex items-center gap-2 text-xs font-bold text-[#D4AF37] truncate pr-6">
+                              <Music className="w-3 h-3" /> {item.file.name}
+                            </div>
+                            <div className="grid grid-cols-4 gap-3">
+                              <div className="col-span-1">
+                                <input 
+                                  type="number"
+                                  value={item.day_number}
+                                  onChange={(e) => updateBatchField(index, 'day_number', e.target.value)}
+                                  placeholder="Day"
+                                  className="w-full bg-black/20 border border-white/10 rounded-lg px-2 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37]/50"
+                                />
+                              </div>
+                              <div className="col-span-3">
+                                <input 
+                                  type="text"
+                                  value={item.title}
+                                  onChange={(e) => updateBatchField(index, 'title', e.target.value)}
+                                  placeholder="Title"
+                                  className="w-full bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#D4AF37]/50"
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {error && (
+                      <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-3 flex items-center gap-2 text-red-200 text-xs" role="alert">
+                        <AlertCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+                        {error}
+                      </div>
+                    )}
+
+                    {success && (
+                      <div className="bg-green-500/20 border border-green-500/50 rounded-xl p-3 flex items-center gap-2 text-green-200 text-xs" role="status">
+                        <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
+                        {success}
+                      </div>
+                    )}
+
+                    {batchFiles.length > 0 && (
+                      <button 
+                        onClick={handleBatchUpload}
+                        disabled={loading}
+                        className="w-full bg-[#B8860B] hover:bg-[#9a700a] text-white font-bold py-4 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
+                            Uploading {batchFiles.length} files...
+                          </>
+                        ) : (
+                          `Upload All (${batchFiles.length} files)`
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </section>
 
           {/* List/Grid View */}
@@ -405,10 +704,10 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         onClick={() => handleDayClick(day, exists)}
                         className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold transition-all ${
                           exists 
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-default' 
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30' 
                             : 'bg-red-500/10 text-red-400/50 border border-red-500/20 hover:bg-red-500/20 hover:text-red-400 cursor-pointer active:scale-90'
                         }`}
-                        title={exists ? `Day ${day}: ${record.title}` : `Day ${day}: Missing`}
+                        title={exists ? `Day ${day}: ${record.title} (Click to Edit)` : `Day ${day}: Missing`}
                         aria-label={`Day ${day}: ${exists ? record.title : 'Missing'}`}
                       >
                         {day}
@@ -422,35 +721,63 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   <p className="text-white/40 italic">No records found. Start by uploading Day 1.</p>
                 </div>
               ) : (
-                <ul className="space-y-3" role="list" aria-label="Audio records list">
-                  {records.map((record) => (
-                    <li 
-                      key={record.id}
-                      className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between hover:bg-white/10 transition-all group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-[#D4AF37]/20 rounded-xl flex items-center justify-center text-[#D4AF37] font-bold text-sm" aria-hidden="true">
-                          {record.day_number}
-                        </div>
-                        <div>
-                          <h3 className="text-white font-medium text-sm line-clamp-1">{record.title}</h3>
-                          <p className="text-white/40 text-xs uppercase tracking-wider">{record.date_string || 'No date set'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <a 
-                          href={pb.files.getUrl(record, record.audio_file)} 
-                          target="_blank" 
-                          rel="noreferrer"
-                          className="p-2 min-w-[48px] min-h-[48px] flex items-center justify-center hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-all"
-                          aria-label={`Listen to Day ${record.day_number}: ${record.title}`}
-                        >
-                          <Music className="w-4 h-4" aria-hidden="true" />
-                        </a>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse" role="table" aria-label="Audio records table">
+                    <thead>
+                      <tr className="border-b border-white/10">
+                        <th className="py-4 px-2 text-xs font-bold text-white/40 uppercase tracking-wider">Day</th>
+                        <th className="py-4 px-2 text-xs font-bold text-white/40 uppercase tracking-wider">Title</th>
+                        <th className="py-4 px-2 text-xs font-bold text-white/40 uppercase tracking-wider hidden md:table-cell">File Name</th>
+                        <th className="py-4 px-2 text-xs font-bold text-white/40 uppercase tracking-wider text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody role="rowgroup">
+                      {records.map((record) => (
+                        <tr key={record.id} className="border-b border-white/5 hover:bg-white/5 transition-colors group">
+                          <td className="py-4 px-2">
+                            <span className="w-8 h-8 bg-[#D4AF37]/20 rounded-lg flex items-center justify-center text-[#D4AF37] font-bold text-xs">
+                              {record.day_number}
+                            </span>
+                          </td>
+                          <td className="py-4 px-2">
+                            <div className="text-white text-sm font-medium line-clamp-1">{record.title}</div>
+                            <div className="text-white/40 text-[10px] uppercase tracking-tighter">{record.date_string || 'No date'}</div>
+                          </td>
+                          <td className="py-4 px-2 hidden md:table-cell">
+                            <div className="text-white/40 text-xs truncate max-w-[150px]">{record.audio_file}</div>
+                          </td>
+                          <td className="py-4 px-2 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <a 
+                                href={pb.files.getUrl(record, record.audio_file)} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="p-2 text-white/40 hover:text-white transition-colors"
+                                aria-label={`Listen to Day ${record.day_number}`}
+                              >
+                                <Music className="w-4 h-4" />
+                              </a>
+                              <button 
+                                onClick={() => handleEdit(record)}
+                                className="p-2 text-blue-400/60 hover:text-blue-400 transition-colors"
+                                aria-label={`Edit Day ${record.day_number}`}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleDelete(record.id)}
+                                className="p-2 text-red-400/60 hover:text-red-400 transition-colors"
+                                aria-label={`Delete Day ${record.day_number}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </motion.div>
           </section>
