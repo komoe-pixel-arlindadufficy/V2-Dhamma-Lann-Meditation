@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PocketBase from 'pocketbase';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -55,6 +55,14 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [records, setRecords] = useState<MeditationRecord[]>([]);
   const [fetchingRecords, setFetchingRecords] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const recordsMap = useMemo(() => {
+    const map = new Map<number, MeditationRecord>();
+    records.forEach(record => {
+      map.set(Number(record.day_number), record);
+    });
+    return map;
+  }, [records]);
 
   const fetchRecords = useCallback(async () => {
     setFetchingRecords(true);
@@ -223,22 +231,30 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setError(null);
     setSuccess(null);
 
+    const totalFiles = batchFiles.length;
+    let successCount = 0;
+
     try {
-      const uploadPromises = batchFiles.map(item => {
+      // Create a copy of the files to upload to iterate over
+      const filesToUpload = [...batchFiles];
+
+      for (const item of filesToUpload) {
         const formData = new FormData();
         formData.append('day_number', item.day_number);
         formData.append('title', item.title);
         formData.append('audio_file', item.file);
-        return pb.collection('meditations').create(formData);
-      });
-
-      await Promise.all(uploadPromises);
+        
+        await pb.collection('meditations').create(formData);
+        
+        successCount++;
+        // Remove the successfully uploaded file from state immediately
+        setBatchFiles(prev => prev.filter(b => b !== item));
+      }
       
-      setSuccess(`Successfully uploaded ${batchFiles.length} meditations!`);
-      setBatchFiles([]);
+      setSuccess(`Successfully uploaded all ${successCount} meditations!`);
       fetchRecords();
     } catch (err: any) {
-      setError(err.message || 'Batch upload failed. Some files may have been uploaded.');
+      setError(`${err.message || 'Batch upload failed.'} Successfully uploaded ${successCount} of ${totalFiles} files.`);
       fetchRecords(); // Refresh to see what succeeded
     } finally {
       setLoading(false);
@@ -717,7 +733,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-7 sm:grid-cols-10 md:grid-cols-12 gap-2" role="grid" aria-label="Audio records grid">
                   {Array.from({ length: 365 }, (_, i) => i + 1).map((day) => {
-                    const record = records.find(r => r.day_number === day);
+                    const record = recordsMap.get(day);
                     const exists = !!record;
                     return (
                       <button
