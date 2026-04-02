@@ -42,7 +42,7 @@ const AppContent: React.FC = () => {
   const [audioGuides, setAudioGuides] = useState<AudioGuide[]>(meditationItems);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedAudio, setSelectedAudio] = useState<AudioGuide | null>(null);
-  const { currentAudio, stopAudio, playAudio: contextPlayAudio } = useAudio();
+  const { activeRecord, stopAudio, playAudio: contextPlayAudio, setMeditations } = useAudio();
   const [isLoading, setIsLoading] = useState(true);
   const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   
@@ -130,6 +130,10 @@ const AppContent: React.FC = () => {
 
     fetchPocketbaseData();
   }, []);
+
+  useEffect(() => {
+    setMeditations(audioGuides);
+  }, [audioGuides, setMeditations]);
 
   useEffect(() => {
     if (!hasScrolled && audioGuides.length > 0 && firstUncompletedId) {
@@ -269,7 +273,7 @@ const AppContent: React.FC = () => {
     <main 
       id="main-content" 
       className={`max-w-2xl mx-auto px-4 py-4 md:py-12 relative transition-all duration-300 ${
-        currentAudio ? 'pb-48' : 'pb-24'
+        activeRecord ? 'pb-48' : 'pb-24'
       } ${lang === 'my' ? 'lang-my' : ''}`}
     >
       <GlobalOfflineBanner />

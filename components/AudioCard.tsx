@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Info, Play, Check, FileAudio } from 'lucide-react';
 import { AudioGuide } from '../types';
-import { useAudioControls } from '../src/context/AudioContext';
+import { useAudio } from '../src/context/AudioContext';
 
 interface AudioCardProps {
   guide: AudioGuide;
@@ -21,7 +21,8 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
   t 
 }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { playAudio } = useAudioControls();
+  const { playAudio, activeRecord, isPlaying } = useAudio();
+  const isActive = activeRecord?.id === guide.id;
 
   return (
     <motion.div 
@@ -38,26 +39,48 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
           onClick={() => playAudio(guide)} 
           whileTap={{ scale: 0.96 }}
           className={`w-full flex flex-col items-center justify-center pt-7 pb-4 rounded-2xl transition-all border-2 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#051a12] ${
-            guide.isCompleted 
-              ? 'bg-[#D4AF37]/10 border-[#D4AF37]/30' 
-              : 'bg-white/5 border-white/10 hover:border-white/30 hover:bg-white/10'
+            isActive
+              ? 'bg-[#D4AF37]/20 border-[#D4AF37] shadow-[0_0_20px_rgba(212,175,55,0.3)]'
+              : guide.isCompleted 
+                ? 'bg-[#D4AF37]/10 border-[#D4AF37]/30' 
+                : 'bg-white/5 border-white/10 hover:border-white/30 hover:bg-white/10'
           } ${isHighlighted ? 'ring-2 ring-[#D4AF37] ring-offset-2 ring-offset-[#051a12]' : ''}`}
           aria-label={`${t.play} ${t.dayLabel} ${guide.id}`}
         >
           <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-all ${
-            guide.audioUrl 
-              ? 'bg-[#B8860B] text-white shadow-xl group-hover:scale-110' 
-              : 'bg-white/10 text-white/40'
+            isActive
+              ? 'bg-[#D4AF37] text-white shadow-xl scale-110'
+              : guide.audioUrl 
+                ? 'bg-[#B8860B] text-white shadow-xl group-hover:scale-110' 
+                : 'bg-white/10 text-white/40'
           }`}>
-            {guide.audioUrl ? (
+            {isActive && isPlaying ? (
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+              >
+                <div className="flex items-end gap-0.5 h-4">
+                  <motion.div animate={{ height: [4, 12, 4] }} transition={{ repeat: Infinity, duration: 0.6 }} className="w-1 bg-white rounded-full" />
+                  <motion.div animate={{ height: [8, 16, 8] }} transition={{ repeat: Infinity, duration: 0.8, delay: 0.2 }} className="w-1 bg-white rounded-full" />
+                  <motion.div animate={{ height: [4, 10, 4] }} transition={{ repeat: Infinity, duration: 0.7, delay: 0.1 }} className="w-1 bg-white rounded-full" />
+                </div>
+              </motion.div>
+            ) : guide.audioUrl ? (
               <Play className="w-6 h-6 fill-current ml-1" />
             ) : (
               <FileAudio className="w-6 h-6" />
             )}
           </div>
-          <span className="text-xs font-bold text-white/90 uppercase tracking-widest">
+          <span className={`text-xs font-bold uppercase tracking-widest ${isActive ? 'text-[#D4AF37]' : 'text-white/90'}`}>
             {t.dayLabel} {guide.id}
           </span>
+          
+          {isActive && (
+            <motion.div 
+              layoutId="playing-indicator"
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-[#D4AF37] rounded-full"
+            />
+          )}
         </motion.button>
 
         {/* Info Toggle Button */}
