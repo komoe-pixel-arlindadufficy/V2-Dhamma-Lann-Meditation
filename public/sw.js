@@ -41,10 +41,17 @@ self.addEventListener('fetch', (event) => {
                   url.pathname.includes('/api/files/') ||
                   event.request.headers.get('Accept')?.includes('audio/');
 
+  // Skip Service Worker for Vite internal paths and dev modules
+  const isViteDev = url.pathname.startsWith('/@') || 
+                    url.pathname.includes('.tsx') || 
+                    url.pathname.includes('.ts') ||
+                    url.search.includes('import') ||
+                    url.search.includes('t=');
+
   if (isAudio) {
     event.respondWith(handleAudioRequest(event.request));
-  } else if (!url.pathname.startsWith('/api/')) {
-    // Stale-while-revalidate for static assets, excluding API calls
+  } else if (!url.pathname.startsWith('/api/') && !isViteDev) {
+    // Stale-while-revalidate for static assets, excluding API calls and dev modules
     event.respondWith(staleWhileRevalidate(event.request));
   }
 });
@@ -120,7 +127,20 @@ async function staleWhileRevalidate(request) {
       cache.put(request, networkResponse.clone());
     }
     return networkResponse;
-  }).catch(() => null);
+  }).catch(() => {
+    // If fetch fails, we don't want to return null to respondWith
+    return null;
+  });
 
-  return cachedResponse || fetchPromise;
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  const response = await fetchPromise;
+  if (response) {
+    return response;
+  }
+
+  // If both fail, let the browser handle it (will show offline error)
+  return fetch(request);
 }

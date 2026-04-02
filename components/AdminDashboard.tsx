@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import PocketBase from 'pocketbase';
-import { m, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Lock, 
   Upload, 
@@ -143,7 +143,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   if (!isLoggedIn) {
     return (
       <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-        <m.div 
+        <motion.div 
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="glass-card w-full max-w-md p-8 rounded-[2rem] border-2 border-[#D4AF37]/30"
@@ -203,7 +203,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               Cancel
             </button>
           </form>
-        </m.div>
+        </motion.div>
       </div>
     );
   }
@@ -238,7 +238,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Upload Form */}
           <section className="lg:col-span-5" id="upload-form" aria-labelledby="upload-title">
-            <m.div 
+            <motion.div 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               className="glass-card p-6 md:p-8 rounded-[2rem] border-2 border-[#D4AF37]/30 sticky top-8"
@@ -352,12 +352,12 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" /> : 'Create Record'}
                 </button>
               </form>
-            </m.div>
+            </motion.div>
           </section>
 
           {/* List/Grid View */}
           <section className="lg:col-span-7" aria-labelledby="tracker-title">
-            <m.div 
+            <motion.div 
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               className="glass-card p-6 md:p-8 rounded-[2rem] border-2 border-[#D4AF37]/10"
@@ -452,7 +452,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   ))}
                 </ul>
               )}
-            </m.div>
+            </motion.div>
           </section>
         </div>
       </div>
