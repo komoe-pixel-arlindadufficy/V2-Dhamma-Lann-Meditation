@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, Play, Check, FileAudio } from 'lucide-react';
+import { Info, Play, Check, FileAudio, Download, X } from 'lucide-react';
 import { AudioGuide } from '../types';
 import { useAudio } from '../src/context/AudioContext';
 
@@ -21,6 +21,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
   t 
 }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showActionModal, setShowActionModal] = useState(false);
   const { playAudio, activeRecord, isPlaying } = useAudio();
   const isActive = activeRecord?.id === guide.id;
 
@@ -34,9 +35,9 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
       transition={{ duration: 0.2 }}
     >
       <div className="relative group">
-        {/* Main Action: Play Audio */}
+        {/* Main Action: Show Modal */}
         <motion.button 
-          onClick={() => playAudio(guide)} 
+          onClick={() => setShowActionModal(true)} 
           whileTap={{ scale: 0.96 }}
           className={`w-full flex flex-col items-center justify-center pt-7 pb-4 rounded-2xl transition-all border-2 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#051a12] ${
             isActive
@@ -173,6 +174,89 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
               {guide.fileName && <div className="font-bold mb-1 gold-text">{guide.fileName}</div>}
               {guide.date && <div className="opacity-60">{guide.date}</div>}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Action Modal */}
+      <AnimatePresence>
+        {showActionModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+            onClick={() => setShowActionModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="glass-card w-full max-w-sm p-8 rounded-[2.5rem] border-2 border-[#D4AF37]/40 bg-[#051a12]/90 shadow-2xl relative overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/5 rounded-full -mr-16 -mt-16" aria-hidden="true"></div>
+              
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-[#B8860B] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl border border-white/20">
+                  <FileAudio className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">
+                  {guide.fileName || `${t.dayLabel} ${guide.id}`}
+                </h3>
+                <p className="text-teal-100/60 text-xs uppercase tracking-widest font-bold">
+                  {t.dayLabel} {guide.id}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    playAudio(guide);
+                    setShowActionModal(false);
+                  }}
+                  className="flex items-center justify-center gap-3 w-full py-4 bg-gradient-to-r from-[#B8860B] to-[#D4AF37] text-white rounded-2xl font-bold shadow-lg hover:shadow-[#D4AF37]/20 transition-all"
+                >
+                  <Play className="w-5 h-5 fill-current" />
+                  Play Now
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const link = document.createElement('a');
+                    link.href = guide.audioUrl || '';
+                    link.download = guide.fileName || `Day_${guide.id}.mp3`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    setShowActionModal(false);
+                  }}
+                  className="flex items-center justify-center gap-3 w-full py-4 bg-white/5 text-white border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all"
+                >
+                  <Download className="w-5 h-5" />
+                  Download
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowActionModal(false);
+                  }}
+                  className="flex items-center justify-center gap-3 w-full py-4 text-white/40 font-bold hover:text-white transition-all"
+                >
+                  <X className="w-5 h-5" />
+                  Close
+                </motion.button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
