@@ -21,6 +21,7 @@ const pb = new PocketBase('https://api.mindset-it.online');
 const ExplanationModal = lazy(() => import('./components/ExplanationModal'));
 const InstallModal = lazy(() => import('./components/InstallModal'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const ActionModal = lazy(() => import('./components/ActionModal'));
 
 /**
  * AUDIO LINK SYSTEM
@@ -42,6 +43,7 @@ const AppContent: React.FC = () => {
   const [audioGuides, setAudioGuides] = useState<AudioGuide[]>(meditationItems);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedAudio, setSelectedAudio] = useState<AudioGuide | null>(null);
+  const [actionAudio, setActionAudio] = useState<AudioGuide | null>(null);
   const { activeRecord, stopAudio, playAudio: contextPlayAudio, setMeditations } = useAudio();
   const [isLoading, setIsLoading] = useState(true);
   const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
@@ -136,23 +138,25 @@ const AppContent: React.FC = () => {
   }, [audioGuides, setMeditations]);
 
   useEffect(() => {
-    if (!hasScrolled && audioGuides.length > 0 && firstUncompletedId) {
+    if (!hasScrolled && audioGuides.length > 0 && firstUncompletedId && !selectedAudio && !actionAudio) {
       // Only scroll if it's not the first day to avoid unnecessary movement on fresh start
       if (firstUncompletedId > 1) {
         const timer = setTimeout(() => {
+          // Double check conditions inside timeout to prevent jump if user interacted
+          if (hasScrolled || selectedAudio || actionAudio) return;
+          
           const element = itemRefs.current.get(firstUncompletedId);
           if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'center' });
             setHasScrolled(true);
           }
-        }, 600); // Slightly longer delay to ensure month expansion animation is well underway
+        }, 1000); // Increased delay to 1s for smoother initial load
         return () => clearTimeout(timer);
       } else {
-        // If it's the first day, we don't need to scroll, but we mark it as "scrolled" to prevent future checks
         setHasScrolled(true);
       }
     }
-  }, [audioGuides, firstUncompletedId, hasScrolled]);
+  }, [audioGuides, firstUncompletedId, hasScrolled, selectedAudio, actionAudio]);
 
   useEffect(() => {
     localStorage.setItem(LANG_KEY, lang);
@@ -319,6 +323,7 @@ const AppContent: React.FC = () => {
           <AudioListContainer 
             audioGuides={audioGuides}
             onToggleDone={toggleAudio}
+            onOpenAction={(guide) => setActionAudio(guide)}
             firstUncompletedId={firstUncompletedId}
             t={t}
             lang={lang}
@@ -407,6 +412,16 @@ const AppContent: React.FC = () => {
             t={t}
             onClose={() => setSelectedAudio(null)}
             onListenNow={listenNow}
+          />
+        )}
+
+        {/* Action Modal */}
+        {actionAudio && (
+          <ActionModal 
+            guide={actionAudio}
+            t={t}
+            onClose={() => setActionAudio(null)}
+            onPlay={listenNow}
           />
         )}
 

@@ -6,6 +6,7 @@ import AudioCard from './AudioCard';
 interface AudioListContainerProps {
   audioGuides: AudioGuide[];
   onToggleDone: (id: number) => void;
+  onOpenAction: (guide: AudioGuide) => void;
   firstUncompletedId: number | undefined;
   t: {
     play: string;
@@ -19,6 +20,7 @@ interface AudioListContainerProps {
 const AudioListContainer: React.FC<AudioListContainerProps> = ({
   audioGuides,
   onToggleDone,
+  onOpenAction,
   firstUncompletedId,
   t,
   lang,
@@ -156,6 +158,7 @@ const AudioListContainer: React.FC<AudioListContainerProps> = ({
                             }}
                             guide={guide}
                             onToggleDone={onToggleDone}
+                            onOpenAction={onOpenAction}
                             isHighlighted={guide.id === firstUncompletedId}
                             t={{ play: t.play, dayLabel: t.dayLabel }}
                           />
