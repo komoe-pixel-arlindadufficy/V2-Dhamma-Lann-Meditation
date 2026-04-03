@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileAudio, Play, Download, X } from 'lucide-react';
+import { FileAudio, Play, Download, X, Loader2 } from 'lucide-react';
 import { AudioGuide } from '../types';
 
 interface ActionModalProps {
@@ -11,6 +11,42 @@ interface ActionModalProps {
 }
 
 const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isDownloading || !guide.audioUrl) return;
+
+    setIsDownloading(true);
+    try {
+      const response = await fetch(guide.audioUrl);
+      if (!response.ok) throw new Error('Network response was not ok');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = guide.fileName || `Day_${guide.id}.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      onClose();
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback for CORS or other errors
+      const fallback = window.confirm(
+        t.downloadError || 'Download failed. Would you like to try opening the file in a new tab instead?'
+      );
+      if (fallback) {
+        window.open(guide.audioUrl, '_blank');
+        onClose();
+      }
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -58,20 +94,16 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={(e) => {
-              e.stopPropagation();
-              const link = document.createElement('a');
-              link.href = guide.audioUrl || '';
-              link.download = guide.fileName || `Day_${guide.id}.mp3`;
-              document.body.appendChild(link);
-              link.click();
-              document.body.removeChild(link);
-              onClose();
-            }}
-            className="flex items-center justify-center gap-3 w-full py-4 bg-white/5 text-white border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all"
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className={`flex items-center justify-center gap-3 w-full py-4 bg-white/5 text-white border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all ${isDownloading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            <Download className="w-5 h-5" />
-            Download
+            {isDownloading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <Download className="w-5 h-5" />
+            )}
+            {isDownloading ? 'Downloading...' : 'Download'}
           </motion.button>
 
           <motion.button
