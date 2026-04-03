@@ -1,6 +1,8 @@
 
 export interface AudioGuide {
   id: number;
+  day_number?: number;
+  title?: string;
   titleEn: string;
   titleMy: string;
   isCompleted: boolean;

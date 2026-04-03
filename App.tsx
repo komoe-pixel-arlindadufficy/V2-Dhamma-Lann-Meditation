@@ -114,6 +114,8 @@ const AppContent: React.FC = () => {
             const url = pb.files.getUrl(record, record.audio_file);
             return {
               ...guide,
+              day_number: record.day_number,
+              title: record.title,
               fileName: record.title,
               explanation: record.title,
               date: record.date_string || guide.date,

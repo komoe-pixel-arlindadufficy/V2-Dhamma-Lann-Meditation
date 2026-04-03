@@ -72,10 +72,10 @@ const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, la
             </div>
             
             <div className="space-y-0.5 md:space-y-1">
-              <h2 className="text-xl md:text-4xl font-black text-white leading-tight">
+              <h2 className="text-[24px] font-black text-white leading-tight">
                 {t.continueJourney}
               </h2>
-              <p className="text-base md:text-2xl gold-text font-bold">
+              <p className="text-[15px] gold-text font-bold">
                 {t.dayLabel} {dayDisplay}
               </p>
             </div>
@@ -91,11 +91,11 @@ const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, la
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => playAudio(nextAudio)}
-            className="flex items-center gap-3 md:gap-4 px-6 py-3 md:px-10 md:py-5 bg-gradient-to-r from-[#B8860B] to-[#D4AF37] rounded-full text-white font-bold shadow-[0_10px_30px_rgba(184,134,11,0.4)] hover:shadow-[0_15px_40px_rgba(184,134,11,0.6)] transition-all group/btn relative overflow-hidden"
+            className="flex items-center gap-3 md:gap-4 px-6 py-3 md:px-10 md:py-5 bg-gradient-to-r from-[#B8860B] to-[#D4AF37] rounded-full text-white font-bold shadow-[0_10px_30px_rgba(184,134,11,0.4)] hover:shadow-[0_15px_40px_rgba(184,134,11,0.6)] transition-all group/btn relative overflow-hidden text-[15px]"
             aria-label={`${t.play} ${t.dayLabel} ${nextAudio.id}`}
           >
             <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" aria-hidden="true"></div>
-            <span className="relative z-10 text-sm md:text-lg">{t.play}</span>
+            <span className="relative z-10">{t.play}</span>
             <div className="relative z-10 w-7 h-7 md:w-10 md:h-10 bg-white/20 rounded-full flex items-center justify-center" aria-hidden="true">
               <svg className="w-4 h-4 md:w-6 md:h-6 fill-current ml-0.5" viewBox="0 0 24 24">
                 <path d="M8 5v14l11-7z" />
