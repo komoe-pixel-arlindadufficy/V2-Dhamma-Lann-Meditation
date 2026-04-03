@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileAudio, Play, Download, X, Loader2 } from 'lucide-react';
+import { FileAudio, Play, Download, X, Loader2, Check } from 'lucide-react';
 import { AudioGuide } from '../types';
 
 interface ActionModalProps {
@@ -12,10 +12,11 @@ interface ActionModalProps {
 
 const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) => {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (isDownloading || !guide.audioUrl) return;
+    if (isDownloading || isSuccess || !guide.audioUrl) return;
 
     setIsDownloading(true);
     try {
@@ -30,10 +31,23 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      onClose();
+      
+      // Free up memory after a small delay to ensure the browser has started the download
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+      }, 100);
+
+      setIsDownloading(false);
+      setIsSuccess(true);
+
+      // Show success state for 2 seconds then close the modal
+      setTimeout(() => {
+        onClose();
+      }, 2000);
     } catch (error) {
       console.error('Download failed:', error);
+      setIsDownloading(false);
+      
       // Fallback for CORS or other errors
       const fallback = window.confirm(
         t.downloadError || 'Download failed. Would you like to try opening the file in a new tab instead?'
@@ -42,8 +56,6 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
         window.open(guide.audioUrl, '_blank');
         onClose();
       }
-    } finally {
-      setIsDownloading(false);
     }
   };
 
@@ -95,15 +107,21 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleDownload}
-            disabled={isDownloading}
-            className={`flex items-center justify-center gap-3 w-full py-4 bg-white/5 text-white border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all ${isDownloading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            disabled={isDownloading || isSuccess}
+            className={`flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold transition-all ${
+              isSuccess 
+                ? 'bg-teal-500/20 text-teal-400 border border-teal-500/50' 
+                : 'bg-white/5 text-white border border-white/10 hover:bg-white/10'
+            } ${isDownloading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            {isDownloading ? (
+            {isSuccess ? (
+              <Check className="w-5 h-5" />
+            ) : isDownloading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <Download className="w-5 h-5" />
             )}
-            {isDownloading ? 'Downloading...' : 'Download'}
+            {isSuccess ? 'Success!' : isDownloading ? 'Downloading...' : 'Download'}
           </motion.button>
 
           <motion.button
