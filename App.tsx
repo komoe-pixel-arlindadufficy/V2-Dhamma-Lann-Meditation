@@ -15,7 +15,7 @@ import GlobalOfflineBanner from './components/GlobalOfflineBanner';
 import { AudioProvider, useAudio } from './src/context/AudioContext';
 
 // Initialize PocketBase
-const pb = new PocketBase('https://api.mindset-it.online');
+const pb = new PocketBase('https://dhammalann-pocketbase.app.komoepixel.com');
 
 // Lazy load non-critical components
 const ExplanationModal = lazy(() => import('./components/ExplanationModal'));
@@ -110,7 +110,9 @@ const AppContent: React.FC = () => {
             const record = records.find(r => r.day_number === guide.id);
             if (!record) return guide;
 
-            const url = pb.files.getUrl(record, record.audio_file);
+            const audioUrl = `https://dhammalann-pocketbase.app.komoepixel.com/api/files/${record.collectionId}/${record.id}/${record.audio_file}`;
+            const coverImage = `https://dhammalann-pocketbase.app.komoepixel.com/api/files/${record.collectionId}/${record.id}/${record.cover_image}`;
+
             return {
               ...guide,
               day_number: record.day_number,
@@ -118,8 +120,9 @@ const AppContent: React.FC = () => {
               fileName: record.title,
               explanation: record.title,
               date: record.date_string || guide.date,
-              audioUrl: url,
-              downloadUrl: url,
+              audioUrl: audioUrl,
+              downloadUrl: audioUrl,
+              coverImage: coverImage,
               // isCompleted is preserved from prev state
             };
           }));
