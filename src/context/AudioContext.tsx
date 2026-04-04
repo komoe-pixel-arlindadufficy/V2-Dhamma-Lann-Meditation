@@ -12,6 +12,7 @@ interface AudioState {
   volume: number;
   isBuffering: boolean;
   error: string | null;
+  lang: 'my' | 'en';
 }
 
 interface AudioControls {
@@ -25,6 +26,7 @@ interface AudioControls {
   playNext: () => void;
   playPrevious: () => void;
   setMeditations: (meditations: AudioGuide[]) => void;
+  setLang: (lang: 'my' | 'en') => void;
 }
 
 const AudioStateContext = createContext<AudioState | undefined>(undefined);
@@ -40,8 +42,10 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [volume, setVolume] = useState(1);
   const [isBuffering, setIsBuffering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lang, setLang] = useState<'my' | 'en'>(() => (localStorage.getItem('mindfulness_lang_pref') as 'my' | 'en') || 'my');
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const preloadRef = useRef<HTMLAudioElement | null>(null);
   
   // Use refs to keep track of state for stable callbacks
   const activeRecordRef = useRef(activeRecord);
@@ -60,6 +64,11 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
+
+  useEffect(() => {
+    localStorage.setItem('mindfulness_lang_pref', lang);
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   const playAudio = useCallback((guide: AudioGuide) => {
     if (!audioRef.current || !guide.audioUrl) return;
@@ -83,11 +92,34 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     audioRef.current.src = guide.audioUrl;
     audioRef.current.load();
     audioRef.current.play()
-      .then(() => setIsPlaying(true))
+      .then(() => {
+        setIsPlaying(true);
+        // Pre-fetch next track metadata
+        preloadNextTrack();
+      })
       .catch(err => {
         console.error("Playback error:", err);
-        setError("Failed to play audio");
+        setError("Failed to play audio. Please check your connection.");
       });
+  }, []);
+
+  const preloadNextTrack = useCallback(() => {
+    const current = activeRecordRef.current;
+    const list = meditationsRef.current;
+    if (!current || list.length === 0) return;
+
+    const currentIndex = list.findIndex(m => m.id === current.id);
+    if (currentIndex !== -1 && currentIndex < list.length - 1) {
+      const nextRecord = list[currentIndex + 1];
+      if (nextRecord.audioUrl) {
+        if (!preloadRef.current) {
+          preloadRef.current = new Audio();
+        }
+        preloadRef.current.src = nextRecord.audioUrl;
+        preloadRef.current.preload = "metadata";
+        preloadRef.current.load();
+      }
+    }
   }, []);
 
   const pauseAudio = useCallback(() => {
@@ -172,10 +204,36 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       if (audio.duration) {
         setProgress((audio.currentTime / audio.duration) * 100);
       }
+      
+      // Update Media Session position state
+      if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+        try {
+          navigator.mediaSession.setPositionState({
+            duration: audio.duration || 0,
+            playbackRate: audio.playbackRate || 1,
+            position: audio.currentTime || 0,
+          });
+        } catch (e) {
+          // Ignore errors from setPositionState
+        }
+      }
     };
 
     const handleLoadedMetadata = () => {
       setDuration(audio.duration);
+      
+      // Update Media Session position state
+      if ('mediaSession' in navigator && 'setPositionState' in navigator.mediaSession) {
+        try {
+          navigator.mediaSession.setPositionState({
+            duration: audio.duration || 0,
+            playbackRate: audio.playbackRate || 1,
+            position: audio.currentTime || 0,
+          });
+        } catch (e) {
+          // Ignore errors
+        }
+      }
     };
 
     const handleEnded = () => {
@@ -190,10 +248,19 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const handleWaiting = () => setIsBuffering(true);
     const handleCanPlay = () => setIsBuffering(false);
-    const handleError = () => {
-      setError("Audio error occurred");
+    const handleError = (e: any) => {
+      console.error("Audio element error:", e);
+      setError("Audio playback failed. Skipping to next track in 3 seconds...");
       setIsBuffering(false);
       setIsPlaying(false);
+
+      // Automatically call playNext after 3 seconds
+      setTimeout(() => {
+        if (playNextRef.current) {
+          setError(null);
+          playNextRef.current();
+        }
+      }, 3000);
     };
 
     audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -221,6 +288,69 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [volume]);
 
+  // Media Session API integration
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !activeRecord) return;
+
+    const title = activeRecord.title || (lang === 'my' ? activeRecord.titleMy : activeRecord.titleEn) || `Day ${activeRecord.day_number || activeRecord.id}`;
+    
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: title,
+      artist: 'Dhamma Lann',
+      album: '365 Days Journey',
+      artwork: [
+        { src: '/icon.svg', sizes: '96x96', type: 'image/svg+xml' },
+        { src: '/icon.svg', sizes: '128x128', type: 'image/svg+xml' },
+        { src: '/icon.svg', sizes: '192x192', type: 'image/svg+xml' },
+        { src: '/icon.svg', sizes: '256x256', type: 'image/svg+xml' },
+        { src: '/icon.svg', sizes: '384x384', type: 'image/svg+xml' },
+        { src: '/icon.svg', sizes: '512x512', type: 'image/svg+xml' },
+      ]
+    });
+
+    const handlers: { [key: string]: MediaSessionActionHandler } = {
+      play: resumeAudio,
+      pause: pauseAudio,
+      previoustrack: playPrevious,
+      nexttrack: playNext,
+      seekbackward: () => {
+        if (audioRef.current) {
+          audioRef.current.currentTime = Math.max(audioRef.current.currentTime - 10, 0);
+        }
+      },
+      seekforward: () => {
+        if (audioRef.current) {
+          audioRef.current.currentTime = Math.min(audioRef.current.currentTime + 10, audioRef.current.duration || 0);
+        }
+      },
+    };
+
+    Object.entries(handlers).forEach(([action, handler]) => {
+      try {
+        navigator.mediaSession.setActionHandler(action as MediaSessionAction, handler);
+      } catch (error) {
+        // Ignore unsupported actions
+      }
+    });
+
+    return () => {
+      Object.keys(handlers).forEach((action) => {
+        try {
+          navigator.mediaSession.setActionHandler(action as MediaSessionAction, null);
+        } catch (error) {
+          // Ignore
+        }
+      });
+    };
+  }, [activeRecord, resumeAudio, pauseAudio, playPrevious, playNext, lang]);
+
+  // Update playback state in Media Session
+  useEffect(() => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    }
+  }, [isPlaying]);
+
   const stateValue = useMemo(() => ({
     activeRecord,
     meditations,
@@ -231,7 +361,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     volume,
     isBuffering,
     error,
-  }), [activeRecord, meditations, isPlaying, progress, currentTime, duration, volume, isBuffering, error]);
+    lang,
+  }), [activeRecord, meditations, isPlaying, progress, currentTime, duration, volume, isBuffering, error, lang]);
 
   const controlValue = useMemo(() => ({
     playAudio,
@@ -244,7 +375,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     playNext,
     playPrevious,
     setMeditations,
-  }), [playAudio, pauseAudio, resumeAudio, togglePlay, stopAudio, seekTo, setVolume, playNext, playPrevious]);
+    setLang,
+  }), [playAudio, pauseAudio, resumeAudio, togglePlay, stopAudio, seekTo, setVolume, playNext, playPrevious, setLang]);
 
   return (
     <AudioStateContext.Provider value={stateValue}>

@@ -39,12 +39,11 @@ const todayDate = new Date().toISOString().split('T')[0];
 type Language = 'my' | 'en';
 
 const AppContent: React.FC = () => {
-  const [lang, setLang] = useState<Language>(() => (localStorage.getItem(LANG_KEY) as Language) || 'my');
+  const { activeRecord, stopAudio, playAudio: contextPlayAudio, setMeditations, lang, setLang } = useAudio();
   const [audioGuides, setAudioGuides] = useState<AudioGuide[]>(meditationItems);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedAudio, setSelectedAudio] = useState<AudioGuide | null>(null);
   const [actionAudio, setActionAudio] = useState<AudioGuide | null>(null);
-  const { activeRecord, stopAudio, playAudio: contextPlayAudio, setMeditations } = useAudio();
   const [isLoading, setIsLoading] = useState(true);
   const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   
@@ -159,11 +158,6 @@ const AppContent: React.FC = () => {
       }
     }
   }, [audioGuides, firstUncompletedId, hasScrolled, selectedAudio, actionAudio]);
-
-  useEffect(() => {
-    localStorage.setItem(LANG_KEY, lang);
-    document.documentElement.lang = lang;
-  }, [lang]);
 
   useEffect(() => {
     loadInitialData();
@@ -295,7 +289,7 @@ const AppContent: React.FC = () => {
           loading="lazy"
           referrerPolicy="no-referrer"
         />
-        <h1 className="font-black mb-2 text-balance break-keep text-3xl md:text-5xl leading-tight bg-gradient-to-b from-[#FCF6BA] via-[#D4AF37] to-[#B8860B] bg-clip-text text-transparent drop-shadow-xl py-2">
+        <h1 className="font-bold mb-2 text-balance break-keep text-2xl md:text-4xl leading-tight">
           {t.titleEn}
         </h1>
         <div className="h-0.5 w-10 bg-[#B8860B] mx-auto rounded-full opacity-30" aria-hidden="true"></div>
@@ -318,8 +312,8 @@ const AppContent: React.FC = () => {
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-8">
             <div className={lang === 'my' ? 'leading-relaxed' : ''}>
-              <h2 className="text-2xl md:text-3xl font-bold gold-text">{t.audioTitle}</h2>
-              <p className="text-teal-100/70 text-sm italic">{t.audioSubtitle}</p>
+              <h2 className="text-xl font-bold gold-text">{t.audioTitle}</h2>
+              <p className="text-teal-100/70 text-xs italic">{t.audioSubtitle}</p>
             </div>
           </div>
           <AudioListContainer 
