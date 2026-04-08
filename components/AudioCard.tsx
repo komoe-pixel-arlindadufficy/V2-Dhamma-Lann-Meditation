@@ -73,7 +73,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
   return (
     <motion.div 
       ref={ref}
-      className={`relative bg-white/5 hover:bg-white/10 rounded-xl p-2 gap-2 sm:p-3 sm:gap-3 transition-colors border flex items-center cursor-pointer ${
+      className={`relative bg-white/5 hover:bg-white/10 rounded-xl p-2 sm:p-3 gap-2 sm:gap-4 transition-colors border flex items-center cursor-pointer ${
         isActive
           ? 'border-[#D4AF37] bg-white/10 shadow-[0_0_20px_rgba(212,175,55,0.1)]'
           : 'border-white/5'
@@ -82,11 +82,11 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
       animate={{ opacity: 1, y: 0 }}
       onClick={() => onOpenAction(guide)}
     >
-      {/* Day Number Indicator */}
-      <div className={`flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-base transition-colors ${
-        isActive ? 'bg-[#D4AF37] text-white shadow-lg' : 'bg-white/10 text-white/40'
+      {/* Day Number Indicator - Shrunk for Mobile */}
+      <div className={`flex-shrink-0 w-6 sm:w-10 text-center transition-colors ${
+        isActive ? 'text-[#D4AF37]' : 'text-gray-500'
       }`}>
-        {guide.id}
+        <span className="text-xs sm:text-base font-bold">{guide.id}</span>
       </div>
 
       {/* Content Section */}
@@ -103,8 +103,8 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
         )}
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex items-center gap-2 shrink-0">
+      {/* Action Buttons - Compact for Mobile */}
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         {/* Download Button */}
         {guide.audioUrl && (
           <motion.button
