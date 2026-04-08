@@ -232,6 +232,7 @@ const AppContent: React.FC = () => {
     notebookLM: "NotebookLM",
     installApp: lang === 'my' ? "App ထည့်သွင်းရန်" : "Install App",
     iosInstallTitle: lang === 'my' ? "App ထည့်သွင်းနည်း" : "How to Install",
+    androidInstallTitle: lang === 'my' ? "App ထည့်သွင်းရန်" : "Install App",
     iosInstallDesc: lang === 'my' ? "App ထည့်သွင်းရန်: သင့်ဖုန်း၏ Share icon ကိုနှိပ်ပြီး 'Add to Home Screen' ကိုရွေးချယ်ပါ။" : "To install: Tap the Share icon at the bottom of your screen, then select 'Add to Home Screen'.",
     androidInstallDesc: lang === 'my' ? "App ထည့်သွင်းရန်: ဘရောက်ဇာမီနူး (အစက်သုံးစက်) ကိုနှိပ်ပြီး 'Install app' သို့မဟုတ် 'Add to Home screen' ကိုရွေးချယ်ပါ။" : "To install: Tap the browser menu (three dots) at the top right, then select 'Install app' or 'Add to Home screen'.",
     upNext: lang === 'my' ? "နောက်ထပ် နာယူရန်" : "Up Next",
