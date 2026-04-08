@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { AudioGuide } from '../types';
 import { useAudio } from '../src/context/AudioContext';
 
@@ -72,10 +72,10 @@ const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, la
             </div>
             
             <div className="space-y-0.5 md:space-y-1">
-              <h2 className="text-[28px] md:text-[42px] font-black text-white leading-tight">
+              <h2 className="text-[24px] font-black text-white leading-tight">
                 {t.continueJourney}
               </h2>
-              <p className="text-[18px] gold-text font-bold">
+              <p className="text-[15px] gold-text font-bold">
                 {t.dayLabel} {dayDisplay}
               </p>
             </div>

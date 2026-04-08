@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Info, Play, Check, FileAudio, Download, X, Loader2 } from 'lucide-react';
 import { AudioGuide } from '../types';
 import { useAudio } from '../src/context/AudioContext';

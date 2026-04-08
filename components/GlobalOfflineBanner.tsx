@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { m, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { WifiOff } from 'lucide-react';
 
 const GlobalOfflineBanner: React.FC = () => {
@@ -21,7 +21,7 @@ const GlobalOfflineBanner: React.FC = () => {
   return (
     <AnimatePresence>
       {!isOnline && (
-        <m.div
+        <motion.div
           initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -100, opacity: 0 }}
@@ -38,7 +38,7 @@ const GlobalOfflineBanner: React.FC = () => {
               <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
             </div>
           </div>
-        </m.div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

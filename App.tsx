@@ -1,7 +1,7 @@
 
 import PocketBase from 'pocketbase';
 import React, { useState, useEffect, Suspense, lazy, useMemo, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { AudioGuide } from './types';
 import { meditationItems } from './data/meditationData';
 import logoUrl from './public/icon.svg';
@@ -111,11 +111,7 @@ const AppContent: React.FC = () => {
             const record = records.find(r => r.day_number === guide.id);
             if (!record) return guide;
 
-            const audioFile = record.audio_file;
-            const url = (typeof audioFile === 'string' && audioFile.startsWith('http'))
-              ? audioFile 
-              : pb.files.getUrl(record, typeof audioFile === 'string' ? audioFile : '');
-
+            const url = pb.files.getUrl(record, record.audio_file);
             return {
               ...guide,
               day_number: record.day_number,
@@ -299,7 +295,7 @@ const AppContent: React.FC = () => {
           loading="lazy"
           referrerPolicy="no-referrer"
         />
-        <h1 className="font-black mb-2 text-balance break-keep text-3xl md:text-5xl leading-tight bg-gradient-to-b from-[#FCF6BA] via-[#D4AF37] to-[#B8860B] bg-clip-text text-transparent drop-shadow-xl py-2">
+        <h1 className="font-bold mb-2 text-balance break-keep text-2xl md:text-4xl leading-tight">
           {t.titleEn}
         </h1>
         <div className="h-0.5 w-10 bg-[#B8860B] mx-auto rounded-full opacity-30" aria-hidden="true"></div>
@@ -322,8 +318,8 @@ const AppContent: React.FC = () => {
         <div className="relative z-10">
           <div className="flex items-center justify-between mb-8">
             <div className={lang === 'my' ? 'leading-relaxed' : ''}>
-              <h2 className="text-2xl md:text-3xl font-bold gold-text">{t.audioTitle}</h2>
-              <p className="text-teal-100/70 text-sm italic">{t.audioSubtitle}</p>
+              <h2 className="text-xl font-bold gold-text">{t.audioTitle}</h2>
+              <p className="text-teal-100/70 text-xs italic">{t.audioSubtitle}</p>
             </div>
           </div>
           <AudioListContainer 

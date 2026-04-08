@@ -21,7 +21,7 @@ export default defineConfig(({ mode }) => {
           output: {
             manualChunks(id) {
               if (id.includes("node_modules")) {
-                if (id.includes("framer-motion")) return "animations";
+                if (id.includes("framer-motion") || id.includes("motion")) return "animations";
                 if (id.includes("lucide-react")) return "icons";
                 return "vendor";
               }
