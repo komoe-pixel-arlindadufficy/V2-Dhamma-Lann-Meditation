@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, Play, Check, FileAudio, Download, X } from 'lucide-react';
+import { Info, Play, Check, FileAudio, Download, X, Loader2 } from 'lucide-react';
 import { AudioGuide } from '../types';
 import { useAudio } from '../src/context/AudioContext';
+import { isAudioOffline, saveOfflineAudio } from '../src/utils/indexedDB';
 
 interface AudioCardProps {
   guide: AudioGuide;
@@ -12,6 +13,7 @@ interface AudioCardProps {
   t: {
     play: string;
     dayLabel: string;
+    download?: string;
   };
 }
 
@@ -23,8 +25,40 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
   t 
 }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const { activeRecord, isPlaying } = useAudio();
   const isActive = activeRecord?.id === guide.id;
+
+  useEffect(() => {
+    const checkOfflineStatus = async () => {
+      const offline = await isAudioOffline(String(guide.id));
+      setIsOffline(offline);
+    };
+    checkOfflineStatus();
+  }, [guide.id]);
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isOffline || isDownloading || !guide.audioUrl) return;
+
+    setIsDownloading(true);
+    try {
+      const response = await fetch(guide.audioUrl);
+      if (!response.ok) throw new Error('Failed to fetch audio');
+      const blob = await response.blob();
+      await saveOfflineAudio(blob, {
+        id: String(guide.id),
+        title: guide.title || `Day ${guide.id}`,
+        fileName: guide.fileName || `Day_${guide.id}.mp3`,
+      });
+      setIsOffline(true);
+    } catch (error) {
+      console.error('Offline download failed:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   return (
     <motion.div 
@@ -87,20 +121,44 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
 
         {/* Info Toggle Button */}
         {(guide.fileName || guide.date) && (
-          <motion.button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsExpanded(!isExpanded);
-            }}
-            whileTap={{ scale: 0.9 }}
-            className={`absolute -bottom-2 -left-2 w-11 h-11 rounded-full shadow-lg transition-all z-20 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#051a12] ${
-              isExpanded ? 'bg-[#D4AF37] text-white' : 'bg-teal-900/80 text-white/60 hover:text-white'
-            }`}
-            aria-label={isExpanded ? "Hide audio information" : "Show audio information"}
-            aria-expanded={isExpanded}
-          >
-            <Info className="w-5 h-5" aria-hidden="true" />
-          </motion.button>
+          <div className="absolute -bottom-2 -left-2 flex gap-1 z-20">
+            <motion.button
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsExpanded(!isExpanded);
+              }}
+              whileTap={{ scale: 0.9 }}
+              className={`w-11 h-11 rounded-full shadow-lg transition-all flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#051a12] ${
+                isExpanded ? 'bg-[#D4AF37] text-white' : 'bg-teal-900/80 text-white/60 hover:text-white'
+              }`}
+              aria-label={isExpanded ? "Hide audio information" : "Show audio information"}
+              aria-expanded={isExpanded}
+            >
+              <Info className="w-5 h-5" aria-hidden="true" />
+            </motion.button>
+
+            {guide.audioUrl && (
+              <motion.button
+                onClick={handleDownload}
+                whileTap={{ scale: 0.9 }}
+                disabled={isDownloading}
+                className={`w-11 h-11 rounded-full shadow-lg transition-all flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#051a12] ${
+                  isOffline 
+                    ? 'bg-green-600 text-white' 
+                    : 'bg-teal-900/80 text-white/60 hover:text-white'
+                }`}
+                aria-label={isOffline ? "Available offline" : "Download for offline"}
+              >
+                {isDownloading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : isOffline ? (
+                  <Check className="w-5 h-5 stroke-[3]" />
+                ) : (
+                  <Download className="w-5 h-5" />
+                )}
+              </motion.button>
+            )}
+          </div>
         )}
 
         {/* Secondary Action: Toggle Done - Redesigned for 44x44px touch target */}

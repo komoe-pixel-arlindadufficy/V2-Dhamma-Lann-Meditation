@@ -782,7 +782,9 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                           <td className="py-4 px-2 text-right sticky right-0 bg-[#041a13]/90 backdrop-blur-sm z-10 group-hover:bg-[#0d4d3a]/90 transition-colors">
                             <div className="flex items-center justify-end gap-1">
                               <a 
-                                href={pb.files.getUrl(record, record.audio_file)} 
+                                href={typeof record.audio_file === 'string' && record.audio_file.startsWith('http') 
+                                  ? record.audio_file 
+                                  : pb.files.getUrl(record, typeof record.audio_file === 'string' ? record.audio_file : '')} 
                                 target="_blank" 
                                 rel="noreferrer"
                                 className="p-2 text-white/40 hover:text-white transition-colors"

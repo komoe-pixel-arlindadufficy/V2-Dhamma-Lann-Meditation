@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileAudio, Play, Download, X, Loader2 } from 'lucide-react';
+import { FileAudio, Play, Download, X, Loader2, Check } from 'lucide-react';
 import { AudioGuide } from '../types';
+import { isAudioOffline, saveOfflineAudio } from '../src/utils/indexedDB';
 
 interface ActionModalProps {
   guide: AudioGuide;
@@ -12,6 +13,38 @@ interface ActionModalProps {
 
 const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) => {
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    const checkOfflineStatus = async () => {
+      const offline = await isAudioOffline(String(guide.id));
+      setIsOffline(offline);
+    };
+    checkOfflineStatus();
+  }, [guide.id]);
+
+  const handleOfflineDownload = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isOffline || isDownloading || !guide.audioUrl) return;
+
+    setIsDownloading(true);
+    try {
+      const response = await fetch(guide.audioUrl);
+      if (!response.ok) throw new Error('Network response was not ok');
+      
+      const blob = await response.blob();
+      await saveOfflineAudio(blob, {
+        id: String(guide.id),
+        title: guide.title || `Day ${guide.id}`,
+        fileName: guide.fileName || `Day_${guide.id}.mp3`,
+      });
+      setIsOffline(true);
+    } catch (error) {
+      console.error('Offline download failed:', error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -94,16 +127,33 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={handleDownload}
-            disabled={isDownloading}
-            className={`flex items-center justify-center gap-3 w-full py-4 bg-white/5 text-white border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all ${isDownloading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            onClick={handleOfflineDownload}
+            disabled={isDownloading || isOffline}
+            className={`flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold transition-all ${
+              isOffline 
+                ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
+                : 'bg-[#B8860B]/10 text-[#D4AF37] border border-[#D4AF37]/30 hover:bg-[#B8860B]/20'
+            } ${isDownloading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
             {isDownloading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
+            ) : isOffline ? (
+              <Check className="w-5 h-5 stroke-[3]" />
             ) : (
               <Download className="w-5 h-5" />
             )}
-            {isDownloading ? 'Downloading...' : 'Download'}
+            {isDownloading ? 'Saving Offline...' : isOffline ? 'Available Offline' : 'Download for Offline'}
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleDownload}
+            disabled={isDownloading}
+            className={`flex items-center justify-center gap-3 w-full py-4 bg-white/5 text-white/60 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all ${isDownloading ? 'opacity-70 cursor-not-allowed' : ''}`}
+          >
+            <Download className="w-5 h-5" />
+            Save to Device
           </motion.button>
 
           <motion.button

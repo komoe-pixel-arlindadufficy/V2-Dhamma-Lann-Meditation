@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { AudioGuide } from '../../types';
+import { getOfflineAudioBlob } from '../utils/indexedDB';
 
 interface AudioState {
   activeRecord: AudioGuide | null;
@@ -42,6 +43,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [error, setError] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const objectUrlRef = useRef<string | null>(null);
   
   // Use refs to keep track of state for stable callbacks
   const activeRecordRef = useRef(activeRecord);
@@ -61,7 +63,14 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
 
-  const playAudio = useCallback((guide: AudioGuide) => {
+  const revokeCurrentObjectUrl = useCallback(() => {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+  }, []);
+
+  const playAudio = useCallback(async (guide: AudioGuide) => {
     if (!audioRef.current || !guide.audioUrl) return;
 
     const current = activeRecordRef.current;
@@ -79,16 +88,35 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     setError(null);
-    setActiveRecord(guide);
-    audioRef.current.src = guide.audioUrl;
-    audioRef.current.load();
-    audioRef.current.play()
-      .then(() => setIsPlaying(true))
-      .catch(err => {
-        console.error("Playback error:", err);
-        setError("Failed to play audio");
-      });
-  }, []);
+    setIsBuffering(true);
+    
+    // Clean up previous object URL
+    revokeCurrentObjectUrl();
+
+    try {
+      // Check for offline version
+      const offlineBlob = await getOfflineAudioBlob(String(guide.id));
+      let sourceUrl = guide.audioUrl;
+
+      if (offlineBlob) {
+        const objectUrl = URL.createObjectURL(offlineBlob);
+        objectUrlRef.current = objectUrl;
+        sourceUrl = objectUrl;
+      }
+
+      setActiveRecord(guide);
+      audioRef.current.src = sourceUrl;
+      audioRef.current.load();
+      await audioRef.current.play();
+      setIsPlaying(true);
+    } catch (err) {
+      console.error("Playback error:", err);
+      setError("Failed to play audio");
+      setIsPlaying(false);
+    } finally {
+      setIsBuffering(false);
+    }
+  }, [revokeCurrentObjectUrl]);
 
   const pauseAudio = useCallback(() => {
     if (audioRef.current) {
@@ -116,11 +144,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.src = '';
+      revokeCurrentObjectUrl();
       setActiveRecord(null);
       setIsPlaying(false);
       setProgress(0);
     }
-  }, []);
+  }, [revokeCurrentObjectUrl]);
 
   const seekTo = useCallback((newProgress: number) => {
     if (audioRef.current && audioRef.current.duration) {
@@ -212,8 +241,9 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       audio.removeEventListener('error', handleError);
       audio.pause();
       audio.src = '';
+      revokeCurrentObjectUrl();
     };
-  }, []);
+  }, [revokeCurrentObjectUrl]);
 
   useEffect(() => {
     if (audioRef.current) {
