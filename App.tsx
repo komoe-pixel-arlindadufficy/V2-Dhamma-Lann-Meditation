@@ -15,7 +15,7 @@ import GlobalOfflineBanner from './components/GlobalOfflineBanner';
 import { AudioProvider, useAudio } from './src/context/AudioContext';
 
 // Initialize PocketBase
-const pb = new PocketBase('https://dhammalann-pocketbase.app.komoepixel.com');
+const pb = new PocketBase('https://api.mindset-it.online');
 
 // Lazy load non-critical components
 const ExplanationModal = lazy(() => import('./components/ExplanationModal'));
@@ -39,13 +39,13 @@ const todayDate = new Date().toISOString().split('T')[0];
 type Language = 'my' | 'en';
 
 const AppContent: React.FC = () => {
-  const { activeRecord, stopAudio, playAudio: contextPlayAudio, setMeditations, lang, setLang } = useAudio();
+  const [lang, setLang] = useState<Language>(() => (localStorage.getItem(LANG_KEY) as Language) || 'my');
   const [audioGuides, setAudioGuides] = useState<AudioGuide[]>(meditationItems);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [selectedAudio, setSelectedAudio] = useState<AudioGuide | null>(null);
   const [actionAudio, setActionAudio] = useState<AudioGuide | null>(null);
+  const { activeRecord, stopAudio, playAudio: contextPlayAudio, setMeditations } = useAudio();
   const [isLoading, setIsLoading] = useState(true);
-  const [apiError, setApiError] = useState(false);
   const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   
   const [hasScrolled, setHasScrolled] = useState(false);
@@ -101,11 +101,9 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     const fetchPocketbaseData = async () => {
       setIsLoading(true);
-      setApiError(false);
       try {
         const records = await pb.collection('meditations').getFullList({
           sort: '+day_number',
-          requestKey: null,
         });
 
         if (records.length > 0) {
@@ -113,9 +111,7 @@ const AppContent: React.FC = () => {
             const record = records.find(r => r.day_number === guide.id);
             if (!record) return guide;
 
-            const audioUrl = pb.files.getUrl(record, record.audio_file);
-            const coverImage = pb.files.getUrl(record, record.cover_image);
-
+            const url = pb.files.getUrl(record, record.audio_file);
             return {
               ...guide,
               day_number: record.day_number,
@@ -123,16 +119,14 @@ const AppContent: React.FC = () => {
               fileName: record.title,
               explanation: record.title,
               date: record.date_string || guide.date,
-              audioUrl: audioUrl,
-              downloadUrl: audioUrl,
-              coverImage: coverImage,
+              audioUrl: url,
+              downloadUrl: url,
               // isCompleted is preserved from prev state
             };
           }));
         }
       } catch (error) {
         console.error("Error fetching PocketBase data:", error);
-        setApiError(true);
       } finally {
         setIsLoading(false);
       }
@@ -165,6 +159,11 @@ const AppContent: React.FC = () => {
       }
     }
   }, [audioGuides, firstUncompletedId, hasScrolled, selectedAudio, actionAudio]);
+
+  useEffect(() => {
+    localStorage.setItem(LANG_KEY, lang);
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   useEffect(() => {
     loadInitialData();
@@ -293,6 +292,7 @@ const AppContent: React.FC = () => {
           alt="Dhammalann Logo" 
           className="w-16 h-16 md:w-24 md:h-24 mx-auto mb-4 md:mb-6 drop-shadow-2xl rounded-2xl"
           fetchPriority="high"
+          loading="lazy"
           referrerPolicy="no-referrer"
         />
         <h1 className="font-bold mb-2 text-balance break-keep text-2xl md:text-4xl leading-tight">
@@ -322,16 +322,6 @@ const AppContent: React.FC = () => {
               <p className="text-teal-100/70 text-xs italic">{t.audioSubtitle}</p>
             </div>
           </div>
-
-          {apiError && (
-            <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-2xl flex items-center gap-3 text-orange-200 text-xs font-bold">
-              <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              Using offline data. Could not connect to the cloud server.
-            </div>
-          )}
-
           <AudioListContainer 
             audioGuides={audioGuides}
             onToggleDone={toggleAudio}

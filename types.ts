@@ -13,7 +13,6 @@ export interface AudioGuide {
   shareLink?: string;
   date?: string;
   explanation?: string;
-  coverImage?: string;
 }
 
 export interface MorningState {
