@@ -57,14 +57,16 @@ const AudioListContainer: React.FC<AudioListContainerProps> = ({
   if (isLoading) {
     return (
       <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 -mr-2 custom-scrollbar pb-4">
-        {[...Array(12)].map((_, i) => (
-          <div key={i} className="rounded-3xl bg-white/5 border border-white/10 p-6 animate-pulse">
-            <div className="flex items-center gap-5">
-              <div className="w-12 h-12 rounded-2xl bg-white/10"></div>
-              <div className="flex-1 space-y-3">
-                <div className="h-4 w-24 bg-white/10 rounded"></div>
-                <div className="h-2 w-full bg-white/5 rounded"></div>
-              </div>
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="rounded-xl bg-white/5 border border-white/5 p-3 animate-pulse flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-white/10 flex-shrink-0"></div>
+            <div className="flex-1 space-y-2">
+              <div className="h-3 w-3/4 bg-white/10 rounded"></div>
+              <div className="h-2 w-1/4 bg-white/5 rounded"></div>
+            </div>
+            <div className="flex gap-2">
+              <div className="w-9 h-9 rounded-full bg-white/10"></div>
+              <div className="w-10 h-10 rounded-full bg-white/10"></div>
             </div>
           </div>
         ))}
@@ -148,7 +150,7 @@ const AudioListContainer: React.FC<AudioListContainerProps> = ({
                   transition={{ duration: 0.3, ease: 'easeInOut' }}
                 >
                   <div className="px-6 pb-6 pt-2">
-                    <ul className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4" role="list">
+                    <ul className="flex flex-col gap-4" role="list">
                       {monthItems.map((guide) => (
                         <li key={guide.id}>
                           <AudioCard 
