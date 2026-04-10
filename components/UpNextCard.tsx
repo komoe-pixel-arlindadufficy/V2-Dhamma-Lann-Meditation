@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
+import { Play } from 'lucide-react';
 import { AudioGuide } from '../types';
 import { useAudio } from '../src/context/AudioContext';
 
@@ -31,76 +32,64 @@ const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, la
 
   return (
     <motion.section
-      initial={{ opacity: 0, y: -20 }}
+      initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
-      className="mb-6 md:mb-10 relative group"
+      className="mb-4 md:mb-6 relative group"
       aria-label="Up next meditation"
     >
-      {/* Decorative Glow Background */}
-      <div className="absolute -inset-1 bg-gradient-to-r from-[#D4AF37]/20 to-[#B8860B]/20 rounded-[2rem] md:rounded-[2.5rem] blur-xl opacity-50 group-hover:opacity-75 transition duration-1000 group-hover:duration-200" aria-hidden="true"></div>
-      
-      <div className="glass-card relative rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-10 border-2 border-[#D4AF37]/50 shadow-2xl overflow-hidden">
-        {/* Background Decorative Elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-[#D4AF37]/5 rounded-full -mr-32 -mt-32 blur-3xl" aria-hidden="true"></div>
-        <div className="absolute bottom-0 left-0 w-48 h-48 bg-teal-500/5 rounded-full -ml-24 -mb-24 blur-3xl" aria-hidden="true"></div>
+      <div className="glass-card relative rounded-2xl p-3 md:p-4 border border-[#D4AF37]/30 shadow-xl overflow-hidden">
+        {/* Background Decorative Glow */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-[#D4AF37]/5 rounded-full -mr-16 -mt-16 blur-2xl" aria-hidden="true"></div>
 
-        <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4 md:gap-8">
-          <div className="text-center md:text-left space-y-2 md:space-y-4">
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-[#D4AF37]/10 border border-[#D4AF37]/30 text-[#D4AF37] text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em]">
-                <span className="relative flex h-2 w-2" aria-hidden="true">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#D4AF37] opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-[#D4AF37]"></span>
-                </span>
-                {t.upNext}
+        <div className="relative z-10 flex items-center gap-3 md:gap-4">
+          {/* Thumbnail / Day Indicator */}
+          <div className="relative shrink-0">
+            {nextAudio.coverImage ? (
+              <img 
+                src={nextAudio.coverImage} 
+                alt="" 
+                className="w-12 h-12 md:w-16 md:h-16 rounded-xl object-cover border border-white/10 shadow-lg"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl bg-gradient-to-br from-[#B8860B]/20 to-[#D4AF37]/20 border border-[#D4AF37]/30 flex flex-col items-center justify-center shadow-lg">
+                <span className="text-[10px] font-bold text-[#D4AF37]/60 uppercase tracking-tighter leading-none mb-0.5">Day</span>
+                <span className="text-lg md:text-xl font-black text-[#D4AF37] leading-none">{dayDisplay}</span>
               </div>
-
-              {currentStreak > 0 && (
-                <motion.div 
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 md:px-4 md:py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-orange-500/30 shadow-[0_0_15px_rgba(249,115,22,0.2)]"
-                  aria-label={`Current streak: ${currentStreak} days`}
-                >
-                  <span className="text-sm md:text-base" aria-hidden="true">🔥</span>
-                  <span className="text-[10px] md:text-xs font-black bg-gradient-to-r from-orange-400 to-yellow-400 bg-clip-text text-transparent uppercase tracking-wider">
-                    {lang === 'my' ? `${streakDisplay} ${t.streakLabel}` : `${streakDisplay} ${t.streakLabel}`}
-                  </span>
-                </motion.div>
-              )}
-            </div>
-            
-            <div className="space-y-0.5 md:space-y-1">
-              <h2 className="text-[24px] font-black text-white leading-tight">
-                {t.continueJourney}
-              </h2>
-              <p className="text-[15px] gold-text font-bold">
-                {t.dayLabel} {dayDisplay}
-              </p>
-            </div>
-
-            {nextAudio.fileName && (
-              <p className="text-teal-100/60 text-[10px] md:text-sm italic max-w-md line-clamp-1 md:line-clamp-none">
-                "{nextAudio.fileName}"
-              </p>
             )}
+            
+            {/* Up Next Badge Overlay */}
+            <div className="absolute -top-1 -left-1 px-1.5 py-0.5 rounded-md bg-[#D4AF37] text-black text-[8px] font-black uppercase tracking-wider shadow-lg">
+              Next
+            </div>
           </div>
 
+          {/* Content Section */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <h2 className="text-sm md:text-base font-bold text-white truncate">
+                {nextAudio.title || nextAudio.titleEn || `${t.dayLabel} ${nextAudio.id}`}
+              </h2>
+              {currentStreak > 0 && (
+                <span className="shrink-0 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-[9px] font-black uppercase tracking-tighter">
+                  🔥 {streakDisplay}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-teal-100/50 truncate">
+              {t.continueJourney} • {t.dayLabel} {dayDisplay}
+            </p>
+          </div>
+
+          {/* Compact Play Button */}
           <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
             onClick={() => playAudio(nextAudio)}
-            className="flex items-center gap-3 md:gap-4 px-6 py-3 md:px-10 md:py-5 bg-gradient-to-r from-[#B8860B] to-[#D4AF37] rounded-full text-white font-bold shadow-[0_10px_30px_rgba(184,134,11,0.4)] hover:shadow-[0_15px_40px_rgba(184,134,11,0.6)] transition-all group/btn relative overflow-hidden text-[15px]"
+            className="shrink-0 w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-[#B8860B] to-[#D4AF37] rounded-full flex items-center justify-center text-white shadow-lg shadow-[#B8860B]/20 transition-all active-scale"
             aria-label={`${t.play} ${t.dayLabel} ${nextAudio.id}`}
           >
-            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-300" aria-hidden="true"></div>
-            <span className="relative z-10">{t.play}</span>
-            <div className="relative z-10 w-7 h-7 md:w-10 md:h-10 bg-white/20 rounded-full flex items-center justify-center" aria-hidden="true">
-              <svg className="w-4 h-4 md:w-6 md:h-6 fill-current ml-0.5" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </div>
+            <Play className="w-5 h-5 md:w-6 md:h-6 fill-current ml-0.5" />
           </motion.button>
         </div>
       </div>
