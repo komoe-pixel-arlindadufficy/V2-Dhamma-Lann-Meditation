@@ -13,6 +13,7 @@ import StickyMiniPlayer from './components/StickyMiniPlayer';
 import GlobalOfflineBanner from './components/GlobalOfflineBanner';
 
 import { AudioProvider, useAudio } from './src/context/AudioContext';
+import { useStorageManager } from './src/hooks/useStorageManager';
 
 // Initialize PocketBase
 const pb = new PocketBase('https://api.mindset-it.online');
@@ -45,6 +46,7 @@ const AppContent: React.FC = () => {
   const [selectedAudio, setSelectedAudio] = useState<AudioGuide | null>(null);
   const [actionAudio, setActionAudio] = useState<AudioGuide | null>(null);
   const { activeRecord, stopAudio, playAudio: contextPlayAudio, setMeditations } = useAudio();
+  const { storageEstimate, formatBytes } = useStorageManager();
   const [isLoading, setIsLoading] = useState(true);
   const itemRefs = useRef<Map<number, HTMLDivElement | null>>(new Map());
   

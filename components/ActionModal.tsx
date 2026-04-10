@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { FileAudio, Play, Download, X, Loader2, Check } from 'lucide-react';
 import { AudioGuide } from '../types';
 import { isAudioOffline, saveOfflineAudio } from '../src/utils/indexedDB';
+import { useStorageManager } from '../src/hooks/useStorageManager';
+import { useAudio } from '../src/context/AudioContext';
 
 interface ActionModalProps {
   guide: AudioGuide;
@@ -14,6 +16,11 @@ interface ActionModalProps {
 const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
+  const { storageEstimate, formatBytes, getStorageEstimate } = useStorageManager();
+  const { downloadAudio, downloadProgress } = useAudio();
+
+  const guideId = String(guide.id);
+  const currentProgress = downloadProgress[guideId] || 0;
 
   useEffect(() => {
     const checkOfflineStatus = async () => {
@@ -29,16 +36,17 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
 
     setIsDownloading(true);
     try {
-      const response = await fetch(guide.audioUrl);
-      if (!response.ok) throw new Error('Network response was not ok');
+      const blob = await downloadAudio(guide);
+      if (!blob) throw new Error('Download failed');
       
-      const blob = await response.blob();
       await saveOfflineAudio(blob, {
         id: String(guide.id),
         title: guide.title || `Day ${guide.id}`,
         fileName: guide.fileName || `Day_${guide.id}.mp3`,
       });
       setIsOffline(true);
+      // Update storage estimate after download
+      await getStorageEstimate();
     } catch (error) {
       console.error('Offline download failed:', error);
     } finally {
@@ -52,10 +60,9 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
 
     setIsDownloading(true);
     try {
-      const response = await fetch(guide.audioUrl);
-      if (!response.ok) throw new Error('Network response was not ok');
+      const blob = await downloadAudio(guide);
+      if (!blob) throw new Error('Download failed');
       
-      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -136,14 +143,33 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
             } ${isDownloading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
             {isDownloading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>{currentProgress > 0 ? `${currentProgress}%` : 'Starting...'}</span>
+                </div>
+                <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden mt-1">
+                  <motion.div 
+                    className="h-full bg-white"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${currentProgress}%` }}
+                    transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+                  />
+                </div>
+              </div>
             ) : isOffline ? (
               <Check className="w-5 h-5 stroke-[3]" />
             ) : (
               <Download className="w-5 h-5" />
             )}
-            {isDownloading ? 'Saving Offline...' : isOffline ? 'Available Offline' : 'Download for Offline'}
+            {isDownloading ? '' : isOffline ? 'Available Offline' : 'Download for Offline'}
           </motion.button>
+
+          {storageEstimate && !isOffline && (
+            <p className="text-[10px] text-teal-100/40 text-center mt-[-8px]">
+              Available space: {formatBytes(storageEstimate.remaining)}
+            </p>
+          )}
 
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -152,8 +178,17 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
             disabled={isDownloading}
             className={`flex items-center justify-center gap-3 w-full py-4 bg-white/5 text-white/60 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all ${isDownloading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
-            <Download className="w-5 h-5" />
-            Save to Device
+            {isDownloading ? (
+              <div className="flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>{currentProgress > 0 ? `${currentProgress}%` : 'Starting...'}</span>
+                </div>
+              </div>
+            ) : (
+              <Download className="w-5 h-5" />
+            )}
+            {isDownloading ? '' : 'Save to Device'}
           </motion.button>
 
           <motion.button
