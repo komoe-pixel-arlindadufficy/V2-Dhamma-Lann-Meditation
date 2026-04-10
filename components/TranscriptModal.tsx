@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, BookOpen } from 'lucide-react';
-import DOMPurify from 'dompurify';
+import DOMPurify from 'dompurify'; // REMINDER: Run 'npm install dompurify @types/dompurify' if not already installed
 import { AudioGuide } from '../types';
 import { getOfflineMetadata } from '../src/utils/indexedDB';
 
@@ -15,6 +15,17 @@ interface TranscriptModalProps {
 
 const TranscriptModal: React.FC<TranscriptModalProps> = ({ isOpen, onClose, guide, lang }) => {
   const [offlineTranscript, setOfflineTranscript] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && !guide.transcript) {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import PocketBase from 'pocketbase';
+import DOMPurify from 'dompurify';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Lock, 
@@ -49,6 +50,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [transcript, setTranscript] = useState('');
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [editingRecord, setEditingRecord] = useState<MeditationRecord | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
 
   // Batch Upload states
   const [activeTab, setActiveTab] = useState<'single' | 'batch'>('single');
@@ -500,9 +502,22 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     </div>
 
                     <div>
-                      <label htmlFor="transcript" className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase mb-2 ml-1">
-                        <FileText className="w-3 h-3" aria-hidden="true" /> Transcript (HTML)
-                      </label>
+                      <div className="flex items-center justify-between mb-2 ml-1">
+                        <label htmlFor="transcript" className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase">
+                          <FileText className="w-3 h-3" aria-hidden="true" /> Transcript (HTML)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setShowPreview(!showPreview)}
+                          className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded border transition-all ${
+                            showPreview 
+                              ? 'bg-[#D4AF37] text-black border-[#D4AF37]' 
+                              : 'text-[#D4AF37] border-[#D4AF37]/30 hover:bg-[#D4AF37]/10'
+                          }`}
+                        >
+                          {showPreview ? 'Hide Preview' : 'Preview HTML'}
+                        </button>
+                      </div>
                       <textarea 
                         id="transcript"
                         value={transcript}
@@ -510,6 +525,23 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#D4AF37]/50 min-h-[150px] font-mono text-sm"
                         placeholder="<p>Paste your HTML transcript here...</p>"
                       />
+                      
+                      <AnimatePresence>
+                        {showPreview && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mt-4 overflow-hidden"
+                          >
+                            <div className="text-[10px] font-bold text-white/40 uppercase mb-2 ml-1">Live Preview</div>
+                            <div 
+                              className="w-full bg-white/5 border border-[#D4AF37]/30 rounded-xl p-6 text-white prose prose-invert prose-sm max-w-none max-h-[300px] overflow-y-auto custom-scrollbar"
+                              dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(transcript, { FORCE_BODY: true }) }}
+                            />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     <div>
