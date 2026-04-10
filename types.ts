@@ -14,6 +14,7 @@ export interface AudioGuide {
   date?: string;
   explanation?: string;
   coverImage?: string;
+  transcript_html?: string;
 }
 
 export interface MorningState {

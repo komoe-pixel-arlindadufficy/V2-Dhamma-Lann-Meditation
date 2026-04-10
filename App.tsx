@@ -123,6 +123,7 @@ const AppContent: React.FC = () => {
               date: record.date_string || guide.date,
               audioUrl: url,
               downloadUrl: url,
+              transcript_html: record.transcript_html,
               // isCompleted is preserved from prev state
             };
           }));

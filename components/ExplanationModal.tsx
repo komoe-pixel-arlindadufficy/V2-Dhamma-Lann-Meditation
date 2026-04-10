@@ -42,14 +42,27 @@ const ExplanationModal: React.FC<ExplanationModalProps> = ({
             </button>
           </div>
 
-          <div className="mb-8">
-            <h4 className="text-xs font-bold gold-text uppercase tracking-widest mb-3 opacity-60">{t.explanation}</h4>
-            <div 
-              className={`text-white/90 leading-relaxed max-h-[300px] overflow-y-auto pr-2 custom-scrollbar whitespace-pre-wrap ${lang === 'my' ? 'text-lg' : 'text-base'}`}
-              tabIndex={0}
-            >
-              {selectedAudio.explanation || (lang === 'my' ? "ရှင်းလင်းချက် မရှိသေးပါ။" : "No explanation available yet.")}
+          <div className="mb-8 space-y-6">
+            <div>
+              <h4 className="text-xs font-bold gold-text uppercase tracking-widest mb-3 opacity-60">{t.explanation}</h4>
+              <div 
+                className={`text-white/90 leading-relaxed max-h-[200px] overflow-y-auto pr-2 custom-scrollbar whitespace-pre-wrap ${lang === 'my' ? 'text-lg' : 'text-base'}`}
+                tabIndex={0}
+              >
+                {selectedAudio.explanation || (lang === 'my' ? "ရှင်းလင်းချက် မရှိသေးပါ။" : "No explanation available yet.")}
+              </div>
             </div>
+
+            {selectedAudio.transcript_html && (
+              <div>
+                <h4 className="text-xs font-bold gold-text uppercase tracking-widest mb-3 opacity-60">Transcript</h4>
+                <div 
+                  className={`text-white/90 leading-relaxed max-h-[300px] overflow-y-auto pr-2 custom-scrollbar prose prose-invert prose-sm max-w-none ${lang === 'my' ? 'text-lg' : 'text-base'}`}
+                  tabIndex={0}
+                  dangerouslySetInnerHTML={{ __html: selectedAudio.transcript_html }}
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3">

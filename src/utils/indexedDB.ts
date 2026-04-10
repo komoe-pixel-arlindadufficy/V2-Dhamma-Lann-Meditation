@@ -10,6 +10,7 @@ export interface AudioMetadata {
   fileName: string;
   fileSize: number;
   mimeType: string;
+  transcript_html?: string;
 }
 
 export interface OfflineAudio {
@@ -57,6 +58,7 @@ export async function saveOfflineAudio(blob: Blob, metadata: Omit<AudioMetadata,
       fileSize: blob.size,
       mimeType: blob.type,
       addedAt: Date.now(),
+      transcript_html: metadata.transcript_html,
     };
 
     await db.put(STORE_NAME, {
@@ -93,6 +95,20 @@ export async function getOfflineAudioBlob(id: string): Promise<Blob | null> {
     return item ? item.blob : null;
   } catch (error) {
     console.error(`Failed to retrieve audio blob for ID ${id}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Retrieves specific audio metadata by its ID.
+ */
+export async function getOfflineMetadata(id: string): Promise<AudioMetadata | null> {
+  try {
+    const db = await getDB();
+    const item = await db.get(STORE_NAME, id);
+    return item ? item.metadata : null;
+  } catch (error) {
+    console.error(`Failed to retrieve metadata for ID ${id}:`, error);
     return null;
   }
 }

@@ -17,7 +17,8 @@ import {
   X,
   Edit,
   Trash2,
-  Layers
+  Layers,
+  FileText
 } from 'lucide-react';
 
 const pb = new PocketBase('https://api.mindset-it.online');
@@ -27,6 +28,7 @@ interface MeditationRecord {
   day_number: number;
   title: string;
   date_string: string;
+  transcript_html: string;
   audio_file: string;
   created: string;
   updated: string;
@@ -44,6 +46,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [dayNumber, setDayNumber] = useState('');
   const [title, setTitle] = useState('');
   const [dateString, setDateString] = useState('');
+  const [transcriptHtml, setTranscriptHtml] = useState('');
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [editingRecord, setEditingRecord] = useState<MeditationRecord | null>(null);
 
@@ -134,6 +137,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setDayNumber(record.day_number.toString());
     setTitle(record.title);
     setDateString(record.date_string || '');
+    setTranscriptHtml(record.transcript_html || '');
     setAudioFile(null); // Keep existing file unless new one is selected
     
     const formElement = document.getElementById('upload-form');
@@ -166,6 +170,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setDayNumber('');
     setTitle('');
     setDateString('');
+    setTranscriptHtml('');
     setAudioFile(null);
   };
 
@@ -276,6 +281,7 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     formData.append('day_number', dayNumber);
     formData.append('title', title);
     formData.append('date_string', dateString);
+    formData.append('transcript_html', transcriptHtml);
     if (audioFile) {
       formData.append('audio_file', audioFile);
     }
@@ -490,6 +496,19 @@ const AdminDashboard: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         onChange={(e) => setDateString(e.target.value)}
                         className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#D4AF37]/50"
                         placeholder="e.g. 2024-01-01"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="transcript-html" className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase mb-2 ml-1">
+                        <FileText className="w-3 h-3" aria-hidden="true" /> Transcript (HTML)
+                      </label>
+                      <textarea 
+                        id="transcript-html"
+                        value={transcriptHtml}
+                        onChange={(e) => setTranscriptHtml(e.target.value)}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#D4AF37]/50 min-h-[150px] font-mono text-sm"
+                        placeholder="<p>Paste your HTML transcript here...</p>"
                       />
                     </div>
 

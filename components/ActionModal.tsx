@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { FileAudio, Play, Download, X, Loader2, Check } from 'lucide-react';
+import { FileAudio, Play, Download, X, Loader2, Check, BookOpen } from 'lucide-react';
 import { AudioGuide } from '../types';
 import { isAudioOffline, saveOfflineAudio } from '../src/utils/indexedDB';
 import { useStorageManager } from '../src/hooks/useStorageManager';
 import { useAudio } from '../src/context/AudioContext';
+import TranscriptModal from './TranscriptModal';
 
 interface ActionModalProps {
   guide: AudioGuide;
@@ -16,6 +17,7 @@ interface ActionModalProps {
 const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(false);
   const { storageEstimate, formatBytes, getStorageEstimate } = useStorageManager();
   const { downloadAudio, downloadProgress, refreshOfflineStatus } = useAudio();
 
@@ -43,6 +45,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
         id: String(guide.id),
         title: guide.title || `Day ${guide.id}`,
         fileName: guide.fileName || `Day_${guide.id}.mp3`,
+        transcript_html: guide.transcript_html || undefined,
       });
       setIsOffline(true);
       // Update global offline status
@@ -136,6 +139,19 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowTranscript(true);
+            }}
+            className="flex items-center justify-center gap-3 w-full py-4 bg-white/10 text-white border border-[#D4AF37]/30 rounded-2xl font-bold hover:bg-white/20 transition-all"
+          >
+            <BookOpen className="w-5 h-5" />
+            📖 Read Audio Book
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={handleOfflineDownload}
             disabled={isDownloading || isOffline}
             className={`flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold transition-all ${
@@ -206,6 +222,13 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
             Close
           </motion.button>
         </div>
+
+        <TranscriptModal 
+          isOpen={showTranscript} 
+          onClose={() => setShowTranscript(false)} 
+          guide={guide}
+          lang="my" // Defaulting to 'my', but this could be dynamic if needed
+        />
       </motion.div>
     </motion.div>
   );
