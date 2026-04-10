@@ -1,5 +1,6 @@
 
 import React from 'react';
+import DOMPurify from 'dompurify';
 import { AudioGuide } from '../types';
 
 interface ExplanationModalProps {
@@ -53,13 +54,13 @@ const ExplanationModal: React.FC<ExplanationModalProps> = ({
               </div>
             </div>
 
-            {selectedAudio.transcript_html && (
+            {selectedAudio.transcript && (
               <div>
                 <h4 className="text-xs font-bold gold-text uppercase tracking-widest mb-3 opacity-60">Transcript</h4>
                 <div 
                   className={`text-white/90 leading-relaxed max-h-[300px] overflow-y-auto pr-2 custom-scrollbar prose prose-invert prose-sm max-w-none ${lang === 'my' ? 'text-lg' : 'text-base'}`}
                   tabIndex={0}
-                  dangerouslySetInnerHTML={{ __html: selectedAudio.transcript_html }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(selectedAudio.transcript, { FORCE_BODY: true }) }}
                 />
               </div>
             )}

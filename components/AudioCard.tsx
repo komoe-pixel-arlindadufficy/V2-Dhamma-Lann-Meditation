@@ -44,7 +44,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
         id: String(guide.id),
         title: guide.title || `Day ${guide.id}`,
         fileName: guide.fileName || `Day_${guide.id}.mp3`,
-        transcript_html: guide.transcript_html || undefined,
+        transcript: guide.transcript || undefined,
       });
       await refreshOfflineStatus();
     } catch (error) {

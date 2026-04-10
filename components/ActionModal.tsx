@@ -45,7 +45,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
         id: String(guide.id),
         title: guide.title || `Day ${guide.id}`,
         fileName: guide.fileName || `Day_${guide.id}.mp3`,
-        transcript_html: guide.transcript_html || undefined,
+        transcript: guide.transcript || undefined,
       });
       setIsOffline(true);
       // Update global offline status

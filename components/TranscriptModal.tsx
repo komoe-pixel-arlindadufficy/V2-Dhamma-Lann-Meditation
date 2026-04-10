@@ -17,22 +17,44 @@ const TranscriptModal: React.FC<TranscriptModalProps> = ({ isOpen, onClose, guid
   const [offlineTranscript, setOfflineTranscript] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isOpen && !guide.transcript_html) {
+    if (isOpen && !guide.transcript) {
       const fetchOffline = async () => {
         const metadata = await getOfflineMetadata(String(guide.id));
-        if (metadata?.transcript_html) {
-          setOfflineTranscript(metadata.transcript_html);
+        if (metadata?.transcript) {
+          setOfflineTranscript(metadata.transcript);
         }
       };
       fetchOffline();
     }
-  }, [isOpen, guide.id, guide.transcript_html]);
+  }, [isOpen, guide.id, guide.transcript]);
 
-  const transcriptToRender = guide.transcript_html || offlineTranscript;
+  const transcriptToRender = guide.transcript || offlineTranscript;
 
   const sanitizedHtml = useMemo(() => {
     if (!transcriptToRender) return '';
-    return DOMPurify.sanitize(transcriptToRender);
+    try {
+      // Configure DOMPurify to handle full documents better if needed
+      // and ensure it doesn't strip everything if it's a full HTML doc
+      const clean = DOMPurify.sanitize(transcriptToRender, {
+        WHOLE_DOCUMENT: false, // We want the fragment to insert into our article
+        RETURN_DOM: false,
+        RETURN_DOM_FRAGMENT: false,
+      });
+      
+      // If sanitization results in empty string but we have raw content, 
+      // it might be because it's a full document that DOMPurify stripped too much of.
+      // We'll try a second pass or a more permissive approach if empty.
+      if (!clean.trim() && transcriptToRender.trim()) {
+        return DOMPurify.sanitize(transcriptToRender, {
+          FORCE_BODY: true,
+        });
+      }
+      
+      return clean;
+    } catch (e) {
+      console.error("Sanitization error:", e);
+      return transcriptToRender; 
+    }
   }, [transcriptToRender]);
 
   return (

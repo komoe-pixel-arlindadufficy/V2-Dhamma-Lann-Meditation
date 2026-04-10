@@ -58,6 +58,40 @@ const AppContent: React.FC = () => {
   const [isStandalone, setIsStandalone] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  const fetchPocketbaseData = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const records = await pb.collection('meditations').getFullList({
+        sort: '+day_number',
+      });
+
+      if (records.length > 0) {
+        setAudioGuides(prev => prev.map(guide => {
+          const record = records.find(r => r.day_number === guide.id);
+          if (!record) return guide;
+
+          const url = pb.files.getUrl(record, record.audio_file);
+          return {
+            ...guide,
+            day_number: record.day_number,
+            title: record.title,
+            fileName: record.title,
+            explanation: record.title,
+            date: record.date_string || guide.date,
+            audioUrl: url,
+            downloadUrl: url,
+            transcript: record.transcript,
+            // isCompleted is preserved from prev state
+          };
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching PocketBase data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const firstUncompletedId = useMemo(() => audioGuides.find(g => !g.isCompleted)?.id, [audioGuides]);
   const nextAudio = useMemo(() => audioGuides.find(g => !g.isCompleted), [audioGuides]);
   const currentStreak = useMemo(() => {
@@ -101,42 +135,23 @@ const AppContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const fetchPocketbaseData = async () => {
-      setIsLoading(true);
-      try {
-        const records = await pb.collection('meditations').getFullList({
-          sort: '+day_number',
-        });
-
-        if (records.length > 0) {
-          setAudioGuides(prev => prev.map(guide => {
-            const record = records.find(r => r.day_number === guide.id);
-            if (!record) return guide;
-
-            const url = pb.files.getUrl(record, record.audio_file);
-            return {
-              ...guide,
-              day_number: record.day_number,
-              title: record.title,
-              fileName: record.title,
-              explanation: record.title,
-              date: record.date_string || guide.date,
-              audioUrl: url,
-              downloadUrl: url,
-              transcript_html: record.transcript_html,
-              // isCompleted is preserved from prev state
-            };
-          }));
-        }
-      } catch (error) {
-        console.error("Error fetching PocketBase data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
     fetchPocketbaseData();
-  }, []);
+  }, [fetchPocketbaseData]);
+
+  useEffect(() => {
+    if (actionAudio) {
+      const updated = audioGuides.find(g => g.id === actionAudio.id);
+      if (updated && updated !== actionAudio) {
+        setActionAudio(updated);
+      }
+    }
+    if (selectedAudio) {
+      const updated = audioGuides.find(g => g.id === selectedAudio.id);
+      if (updated && updated !== selectedAudio) {
+        setSelectedAudio(updated);
+      }
+    }
+  }, [audioGuides, actionAudio, selectedAudio]);
 
   useEffect(() => {
     setMeditations(audioGuides);
@@ -247,6 +262,11 @@ const AppContent: React.FC = () => {
   const handleAdminClick = useCallback(() => {
     setShowAdminDashboard(true);
   }, []);
+
+  const handleAdminClose = useCallback(() => {
+    setShowAdminDashboard(false);
+    fetchPocketbaseData();
+  }, [fetchPocketbaseData]);
 
   const handleInstallClick = useCallback(async () => {
     if (deferredPrompt) {
@@ -407,7 +427,7 @@ const AppContent: React.FC = () => {
       }>
         {/* Admin Dashboard */}
         {showAdminDashboard && (
-          <AdminDashboard onClose={() => setShowAdminDashboard(false)} />
+          <AdminDashboard onClose={handleAdminClose} />
         )}
 
         {/* Explanation Modal */}

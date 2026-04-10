@@ -10,7 +10,7 @@ export interface AudioMetadata {
   fileName: string;
   fileSize: number;
   mimeType: string;
-  transcript_html?: string;
+  transcript?: string;
 }
 
 export interface OfflineAudio {
@@ -58,7 +58,7 @@ export async function saveOfflineAudio(blob: Blob, metadata: Omit<AudioMetadata,
       fileSize: blob.size,
       mimeType: blob.type,
       addedAt: Date.now(),
-      transcript_html: metadata.transcript_html,
+      transcript: metadata.transcript,
     };
 
     await db.put(STORE_NAME, {
