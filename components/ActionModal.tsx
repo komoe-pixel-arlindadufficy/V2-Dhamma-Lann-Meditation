@@ -17,7 +17,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
   const [isDownloading, setIsDownloading] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const { storageEstimate, formatBytes, getStorageEstimate } = useStorageManager();
-  const { downloadAudio, downloadProgress } = useAudio();
+  const { downloadAudio, downloadProgress, refreshOfflineStatus } = useAudio();
 
   const guideId = String(guide.id);
   const currentProgress = downloadProgress[guideId] || 0;
@@ -45,6 +45,8 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
         fileName: guide.fileName || `Day_${guide.id}.mp3`,
       });
       setIsOffline(true);
+      // Update global offline status
+      await refreshOfflineStatus();
       // Update storage estimate after download
       await getStorageEstimate();
     } catch (error) {

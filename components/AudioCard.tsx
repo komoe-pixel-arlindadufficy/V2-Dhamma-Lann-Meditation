@@ -24,18 +24,12 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
   isHighlighted,
   t 
 }, ref) => {
-  const [isOffline, setIsOffline] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
-  const { activeRecord, isPlaying, togglePlay, playAudio } = useAudio();
+  const { activeRecord, isPlaying, togglePlay, playAudio, offlineIds, refreshOfflineStatus, downloadAudio, downloadProgress } = useAudio();
   const isActive = activeRecord?.id === guide.id;
-
-  useEffect(() => {
-    const checkOfflineStatus = async () => {
-      const offline = await isAudioOffline(String(guide.id));
-      setIsOffline(offline);
-    };
-    checkOfflineStatus();
-  }, [guide.id]);
+  const isOffline = offlineIds.has(String(guide.id));
+  const guideId = String(guide.id);
+  const currentProgress = downloadProgress[guideId] || 0;
 
   const handleDownload = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -43,15 +37,15 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
 
     setIsDownloading(true);
     try {
-      const response = await fetch(guide.audioUrl);
-      if (!response.ok) throw new Error('Failed to fetch audio');
-      const blob = await response.blob();
+      const blob = await downloadAudio(guide);
+      if (!blob) throw new Error('Download failed');
+      
       await saveOfflineAudio(blob, {
         id: String(guide.id),
         title: guide.title || `Day ${guide.id}`,
         fileName: guide.fileName || `Day_${guide.id}.mp3`,
       });
-      setIsOffline(true);
+      await refreshOfflineStatus();
     } catch (error) {
       console.error('Offline download failed:', error);
     } finally {
@@ -97,9 +91,17 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
           {titleDisplay}
         </h3>
         {guide.date && (
-          <p className="text-xs text-gray-400 mt-1 font-medium">
-            {guide.date}
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-xs text-gray-400 font-medium">
+              {guide.date}
+            </p>
+            {isOffline && (
+              <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-400 text-[10px] font-bold uppercase tracking-wider border border-green-500/20">
+                <div className="w-1 h-1 rounded-full bg-green-400 animate-pulse" />
+                Offline
+              </span>
+            )}
+          </div>
         )}
       </div>
 
@@ -111,15 +113,22 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
             onClick={handleDownload}
             whileTap={{ scale: 0.9 }}
             disabled={isDownloading}
-            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+            className={`w-9 h-9 rounded-full flex items-center justify-center transition-all relative ${
               isOffline 
-                ? 'text-[#D4AF37]' 
+                ? 'text-green-400 bg-green-500/10 border border-green-500/20' 
                 : 'text-white/30 hover:text-white hover:bg-white/10'
             }`}
             aria-label={isOffline ? "Available offline" : "Download for offline"}
           >
             {isDownloading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <div className="relative w-full h-full flex items-center justify-center">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                {currentProgress > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#D4AF37] text-white text-[8px] px-1 rounded-full font-bold">
+                    {currentProgress}%
+                  </span>
+                )}
+              </div>
             ) : isOffline ? (
               <Check className="w-4 h-4 stroke-[3]" />
             ) : (

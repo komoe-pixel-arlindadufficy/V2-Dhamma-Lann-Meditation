@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { AudioGuide } from '../../types';
-import { getOfflineAudioBlob } from '../utils/indexedDB';
+import { getOfflineAudioBlob, getAllOfflineMetadata } from '../utils/indexedDB';
 
 interface AudioState {
   activeRecord: AudioGuide | null;
@@ -14,6 +14,7 @@ interface AudioState {
   isBuffering: boolean;
   error: string | null;
   downloadProgress: Record<string, number>;
+  offlineIds: Set<string>;
 }
 
 interface AudioControls {
@@ -28,6 +29,7 @@ interface AudioControls {
   playPrevious: () => void;
   setMeditations: (meditations: AudioGuide[]) => void;
   downloadAudio: (guide: AudioGuide) => Promise<Blob | undefined>;
+  refreshOfflineStatus: () => Promise<void>;
 }
 
 const AudioStateContext = createContext<AudioState | undefined>(undefined);
@@ -44,6 +46,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isBuffering, setIsBuffering] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
+  const [offlineIds, setOfflineIds] = useState<Set<string>>(new Set());
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const objectUrlRef = useRef<string | null>(null);
@@ -235,6 +238,16 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [activeRecord, playAudio]);
 
+  const refreshOfflineStatus = useCallback(async () => {
+    const metadata = await getAllOfflineMetadata();
+    setOfflineIds(new Set(metadata.map(m => m.id)));
+  }, []);
+
+  // Initial load of offline status
+  useEffect(() => {
+    refreshOfflineStatus();
+  }, [refreshOfflineStatus]);
+
   /**
    * DOWNLOAD WITH PROGRESS TRACKING
    * Uses Streams API to read response body in chunks and calculate percentage.
@@ -378,7 +391,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     isBuffering,
     error,
     downloadProgress,
-  }), [activeRecord, meditations, isPlaying, progress, currentTime, duration, volume, isBuffering, error, downloadProgress]);
+    offlineIds,
+  }), [activeRecord, meditations, isPlaying, progress, currentTime, duration, volume, isBuffering, error, downloadProgress, offlineIds]);
 
   const controlValue = useMemo(() => ({
     playAudio,
@@ -392,7 +406,8 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     playPrevious,
     setMeditations,
     downloadAudio,
-  }), [playAudio, pauseAudio, resumeAudio, togglePlay, stopAudio, seekTo, setVolume, playNext, playPrevious, downloadAudio]);
+    refreshOfflineStatus,
+  }), [playAudio, pauseAudio, resumeAudio, togglePlay, stopAudio, seekTo, setVolume, playNext, playPrevious, downloadAudio, refreshOfflineStatus]);
 
   return (
     <AudioStateContext.Provider value={stateValue}>
