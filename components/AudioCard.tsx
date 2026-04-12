@@ -141,18 +141,21 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
         {/* Play/Pause Button */}
         <motion.button
           onClick={handlePlay}
-          whileTap={{ scale: 0.9 }}
+          whileTap={guide.audioUrl ? { scale: 0.9 } : {}}
+          disabled={!guide.audioUrl}
           className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-lg active-scale ${
             isActive
               ? 'bg-[#D4AF37] text-white'
-              : 'bg-white/10 text-white hover:bg-white/20'
+              : guide.audioUrl 
+                ? 'bg-white/10 text-white hover:bg-white/20'
+                : 'bg-white/5 text-white/20 cursor-not-allowed'
           }`}
-          aria-label={isActive && isPlaying ? `Pause ${titleDisplay}` : `Play ${titleDisplay}`}
+          aria-label={!guide.audioUrl ? "Audio not available" : isActive && isPlaying ? `Pause ${titleDisplay}` : `Play ${titleDisplay}`}
         >
           {isActive && isPlaying ? (
             <Pause className="w-5 h-5 fill-current" />
           ) : (
-            <Play className="w-5 h-5 fill-current ml-0.5" />
+            <Play className={`w-5 h-5 fill-current ml-0.5 ${!guide.audioUrl ? 'opacity-20' : ''}`} />
           )}
         </motion.button>
 

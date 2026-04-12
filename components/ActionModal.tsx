@@ -124,18 +124,25 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
 
         <div className="flex flex-col gap-3">
           <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={guide.audioUrl ? { scale: 1.02 } : {}}
+            whileTap={guide.audioUrl ? { scale: 0.98 } : {}}
             onClick={(e) => {
               e.stopPropagation();
-              onPlay(guide);
-              onClose();
+              if (guide.audioUrl) {
+                onPlay(guide);
+                onClose();
+              }
             }}
-            className="flex items-center justify-center gap-3 w-full py-4 bg-gradient-to-r from-[#B8860B] to-[#D4AF37] text-white rounded-2xl font-bold shadow-lg hover:shadow-[#D4AF37]/20 transition-all"
-            aria-label={`Play ${guide.title || `${t.dayLabel} ${guide.id}`}`}
+            disabled={!guide.audioUrl}
+            className={`flex items-center justify-center gap-3 w-full py-4 rounded-2xl font-bold shadow-lg transition-all ${
+              guide.audioUrl 
+                ? 'bg-gradient-to-r from-[#B8860B] to-[#D4AF37] text-white hover:shadow-[#D4AF37]/20' 
+                : 'bg-white/5 text-white/20 cursor-not-allowed'
+            }`}
+            aria-label={!guide.audioUrl ? "Audio not available" : `Play ${guide.title || `${t.dayLabel} ${guide.id}`}`}
           >
-            <Play className="w-5 h-5 fill-current" />
-            Play Now
+            <Play className={`w-5 h-5 fill-current ${!guide.audioUrl ? 'opacity-20' : ''}`} />
+            {guide.audioUrl ? 'Play Now' : 'Audio Unavailable'}
           </motion.button>
 
           <motion.button

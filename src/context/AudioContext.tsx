@@ -115,6 +115,12 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         if (audioRef.current) {
+          if (!sourceUrl) {
+            setError("Audio URL is missing");
+            setIsPlaying(false);
+            return;
+          }
+
           // Revoke the OLD URL before setting the new one
           revokeCurrentObjectUrl();
           

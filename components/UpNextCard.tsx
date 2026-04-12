@@ -83,13 +83,18 @@ const UpNextCard: React.FC<UpNextCardProps> = ({ nextAudio, currentStreak, t, la
 
           {/* Compact Play Button */}
           <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => playAudio(nextAudio)}
-            className="shrink-0 w-10 h-10 md:w-12 md:h-12 bg-gradient-to-r from-[#B8860B] to-[#D4AF37] rounded-full flex items-center justify-center text-white shadow-lg shadow-[#B8860B]/20 transition-all active-scale"
-            aria-label={`${t.play} ${t.dayLabel} ${nextAudio.id}`}
+            whileHover={nextAudio.audioUrl ? { scale: 1.1 } : {}}
+            whileTap={nextAudio.audioUrl ? { scale: 0.9 } : {}}
+            onClick={() => nextAudio.audioUrl && playAudio(nextAudio)}
+            disabled={!nextAudio.audioUrl}
+            className={`shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center text-white shadow-lg transition-all active-scale ${
+              nextAudio.audioUrl 
+                ? 'bg-gradient-to-r from-[#B8860B] to-[#D4AF37] shadow-[#B8860B]/20' 
+                : 'bg-white/5 text-white/20 cursor-not-allowed'
+            }`}
+            aria-label={!nextAudio.audioUrl ? "Audio not available" : `${t.play} ${t.dayLabel} ${nextAudio.id}`}
           >
-            <Play className="w-5 h-5 md:w-6 md:h-6 fill-current ml-0.5" />
+            <Play className={`w-5 h-5 md:w-6 md:h-6 fill-current ml-0.5 ${!nextAudio.audioUrl ? 'opacity-20' : ''}`} />
           </motion.button>
         </div>
       </div>
