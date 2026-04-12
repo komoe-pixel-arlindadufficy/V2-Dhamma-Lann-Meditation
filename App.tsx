@@ -23,6 +23,7 @@ const ExplanationModal = lazy(() => import('./components/ExplanationModal'));
 const InstallModal = lazy(() => import('./components/InstallModal'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const ActionModal = lazy(() => import('./components/ActionModal'));
+const ShareModal = lazy(() => import('./components/ShareModal'));
 
 /**
  * AUDIO LINK SYSTEM
@@ -55,6 +56,7 @@ const AppContent: React.FC = () => {
   const [showIosModal, setShowIosModal] = useState(false);
   const [showAndroidModal, setShowAndroidModal] = useState(false);
   const [showAdminDashboard, setShowAdminDashboard] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -256,12 +258,36 @@ const AppContent: React.FC = () => {
     upNext: lang === 'my' ? "နောက်ထပ် နာယူရန်" : "Up Next",
     continueJourney: lang === 'my' ? "ဓမ္မလမ်း ကိုလျှောက်ကြမယ်" : "Let's walk the Dhamma path",
     streakLabel: lang === 'my' ? "ရက်ဆက်တိုက်" : "Day Streak",
-    submit: lang === 'my' ? "အတည်ပြုရန်" : "Submit"
+    submit: lang === 'my' ? "အတည်ပြုရန်" : "Submit",
+    share: lang === 'my' ? "မျှဝေရန်" : "Share",
+    copyLink: lang === 'my' ? "လင့်ခ်ကို ကူးယူရန်" : "Copy Link",
+    copied: lang === 'my' ? "ကူးယူပြီးပါပြီ" : "Copied!"
   }), [lang]);
 
   const handleAdminClick = useCallback(() => {
     setShowAdminDashboard(true);
   }, []);
+
+  const handleShare = useCallback(async () => {
+    const shareData = {
+      title: t.titleEn,
+      text: t.audioSubtitle,
+      url: window.location.origin,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        // Only show modal if it wasn't a user cancellation
+        if ((err as Error).name !== 'AbortError') {
+          setShowShareModal(true);
+        }
+      }
+    } else {
+      setShowShareModal(true);
+    }
+  }, [t.titleEn, t.audioSubtitle]);
 
   const handleAdminClose = useCallback(() => {
     setShowAdminDashboard(false);
@@ -311,14 +337,33 @@ const AppContent: React.FC = () => {
         className="text-center mb-6 md:mb-16 relative pt-4 md:pt-12"
         {...animationProps}
       >
-        <img 
-          src={logoUrl} 
-          alt="Dhammalann Logo" 
-          className="w-16 h-16 md:w-24 md:h-24 mx-auto mb-4 md:mb-6 drop-shadow-2xl rounded-2xl"
-          fetchPriority="high"
-          loading="lazy"
-          referrerPolicy="no-referrer"
-        />
+        {/* Share Button (Top Right) */}
+        <div className="absolute top-4 right-0 md:top-12">
+          <button
+            onClick={handleShare}
+            className="p-3 bg-white/5 hover:bg-white/10 rounded-full text-[#D4AF37] border border-[#D4AF37]/20 transition-all active:scale-90"
+            aria-label="Share this app"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+          </button>
+        </div>
+
+        <button 
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="block mx-auto transition-transform active:scale-95 group"
+          aria-label="Go to home"
+        >
+          <img 
+            src={logoUrl} 
+            alt="Dhammalann Logo" 
+            className="w-16 h-16 md:w-24 md:h-24 mx-auto mb-4 md:mb-6 drop-shadow-2xl rounded-2xl group-hover:ring-2 ring-[#D4AF37]/30 transition-all"
+            fetchPriority="high"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+          />
+        </button>
         <h1 className="font-bold mb-2 text-balance break-keep text-2xl md:text-4xl leading-tight">
           {t.titleEn}
         </h1>
@@ -468,6 +513,15 @@ const AppContent: React.FC = () => {
             onClose={() => setShowAndroidModal(false)}
           />
         )}
+
+        {/* Share Modal */}
+        {showShareModal && (
+          <ShareModal 
+            isOpen={showShareModal}
+            onClose={() => setShowShareModal(false)}
+            t={t}
+          />
+        )}
       </Suspense>
 
       <StickyMiniPlayer 
@@ -480,6 +534,7 @@ const AppContent: React.FC = () => {
         lang={lang}
         setLang={setLang}
         onOpenAdminDashboard={handleAdminClick}
+        onOpenShareModal={handleShare}
         t={t}
       />
 
