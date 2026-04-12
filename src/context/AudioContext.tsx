@@ -409,6 +409,27 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     refreshOfflineStatus,
   }), [playAudio, pauseAudio, resumeAudio, togglePlay, stopAudio, seekTo, setVolume, playNext, playPrevious, downloadAudio, refreshOfflineStatus]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only trigger if Space is pressed and user is not typing in an input field
+      if (event.code === 'Space') {
+        const target = event.target as HTMLElement;
+        const isTyping = target.tagName === 'INPUT' || 
+                         target.tagName === 'TEXTAREA' || 
+                         target.isContentEditable ||
+                         target.tagName === 'SELECT';
+        
+        if (!isTyping && activeRecord) {
+          event.preventDefault(); // Prevent page scrolling
+          togglePlay();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeRecord, togglePlay]);
+
   return (
     <AudioStateContext.Provider value={stateValue}>
       <AudioControlContext.Provider value={controlValue}>

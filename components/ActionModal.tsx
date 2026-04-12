@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { FileAudio, Play, Download, X, Loader2, Check, BookOpen } from 'lucide-react';
 import { AudioGuide } from '../types';
 import { isAudioOffline, saveOfflineAudio } from '../src/utils/indexedDB';
 import { useStorageManager } from '../src/hooks/useStorageManager';
 import { useAudio } from '../src/context/AudioContext';
-import TranscriptModal from './TranscriptModal';
+
+const TranscriptModal = lazy(() => import('./TranscriptModal'));
 
 interface ActionModalProps {
   guide: AudioGuide;
@@ -131,6 +132,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
               onClose();
             }}
             className="flex items-center justify-center gap-3 w-full py-4 bg-gradient-to-r from-[#B8860B] to-[#D4AF37] text-white rounded-2xl font-bold shadow-lg hover:shadow-[#D4AF37]/20 transition-all"
+            aria-label={`Play ${guide.title || `${t.dayLabel} ${guide.id}`}`}
           >
             <Play className="w-5 h-5 fill-current" />
             Play Now
@@ -144,6 +146,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
               setShowTranscript(true);
             }}
             className="flex items-center justify-center gap-3 w-full py-4 bg-white/10 text-white border border-[#D4AF37]/30 rounded-2xl font-bold hover:bg-white/20 transition-all"
+            aria-label={`Read transcript for ${guide.title || `${t.dayLabel} ${guide.id}`}`}
           >
             <BookOpen className="w-5 h-5" />
             📖 Read Audio Book
@@ -159,6 +162,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
                 ? 'bg-green-600/20 text-green-400 border border-green-600/30' 
                 : 'bg-[#B8860B]/10 text-[#D4AF37] border border-[#D4AF37]/30 hover:bg-[#B8860B]/20'
             } ${isDownloading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            aria-label={isOffline ? `${guide.title || `${t.dayLabel} ${guide.id}`} is available offline` : `Download ${guide.title || `${t.dayLabel} ${guide.id}`} for offline listening`}
           >
             {isDownloading ? (
               <div className="flex flex-col items-center gap-1">
@@ -195,6 +199,7 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
             onClick={handleDownload}
             disabled={isDownloading}
             className={`flex items-center justify-center gap-3 w-full py-4 bg-white/5 text-white/60 border border-white/10 rounded-2xl font-bold hover:bg-white/10 transition-all ${isDownloading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            aria-label={`Save ${guide.title || `${t.dayLabel} ${guide.id}`} to device`}
           >
             {isDownloading ? (
               <div className="flex flex-col items-center gap-1">
@@ -217,18 +222,21 @@ const ActionModal: React.FC<ActionModalProps> = ({ guide, t, onClose, onPlay }) 
               onClose();
             }}
             className="flex items-center justify-center gap-3 w-full py-4 text-white/40 font-bold hover:text-white transition-all"
+            aria-label="Close action menu"
           >
             <X className="w-5 h-5" />
             Close
           </motion.button>
         </div>
 
-        <TranscriptModal 
-          isOpen={showTranscript} 
-          onClose={() => setShowTranscript(false)} 
-          guide={guide}
-          lang="my" // Defaulting to 'my', but this could be dynamic if needed
-        />
+        <Suspense fallback={null}>
+          <TranscriptModal 
+            isOpen={showTranscript} 
+            onClose={() => setShowTranscript(false)} 
+            guide={guide}
+            lang="my" // Defaulting to 'my', but this could be dynamic if needed
+          />
+        </Suspense>
       </motion.div>
     </motion.div>
   );

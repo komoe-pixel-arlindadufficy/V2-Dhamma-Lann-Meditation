@@ -119,7 +119,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
                 ? 'text-green-400 bg-green-500/10 border border-green-500/20' 
                 : 'text-white/30 hover:text-white hover:bg-white/10'
             }`}
-            aria-label={isOffline ? "Available offline" : "Download for offline"}
+            aria-label={isOffline ? `${titleDisplay} is available offline` : `Download ${titleDisplay} for offline listening`}
           >
             {isDownloading ? (
               <div className="relative w-full h-full flex items-center justify-center">
@@ -147,7 +147,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
               ? 'bg-[#D4AF37] text-white'
               : 'bg-white/10 text-white hover:bg-white/20'
           }`}
-          aria-label={isActive && isPlaying ? "Pause" : "Play"}
+          aria-label={isActive && isPlaying ? `Pause ${titleDisplay}` : `Play ${titleDisplay}`}
         >
           {isActive && isPlaying ? (
             <Pause className="w-5 h-5 fill-current" />
@@ -166,7 +166,7 @@ const AudioCard = React.memo(React.forwardRef<HTMLDivElement, AudioCardProps>(({
           className={`w-9 h-9 rounded-full flex items-center justify-center transition-all active-scale ${
             guide.isCompleted ? 'text-[#D4AF37]' : 'text-white/10 hover:text-white/30'
           }`}
-          aria-label={guide.isCompleted ? "Mark as Unfinished" : "Mark as Done"}
+          aria-label={guide.isCompleted ? `Mark ${titleDisplay} as unfinished` : `Mark ${titleDisplay} as completed`}
         >
           <Check className={`w-5 h-5 ${guide.isCompleted ? 'stroke-[3]' : 'stroke-[2]'}`} />
         </motion.button>

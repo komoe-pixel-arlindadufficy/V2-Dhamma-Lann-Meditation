@@ -76,7 +76,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                   whileTap={{ scale: 0.9 }}
                   onClick={playPrevious}
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 transition-all"
-                  aria-label="Previous audio"
+                  aria-label={`Play previous audio session`}
                 >
                   <SkipBack className="w-5 h-5 fill-current" aria-hidden="true" />
                 </motion.button>
@@ -98,7 +98,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                         ? 'bg-red-500/20 text-red-400 border border-red-500/50' 
                         : 'bg-gradient-to-br from-[#B8860B] to-[#D4AF37] text-white'
                     }`}
-                    aria-label={error ? "Retry loading" : isPlaying ? "Pause" : "Play"}
+                    aria-label={error ? `Retry loading ${titleDisplay}` : isPlaying ? `Pause ${titleDisplay}` : `Play ${titleDisplay}`}
                     disabled={isBuffering && !error}
                   >
                     {error ? (
@@ -118,7 +118,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
                   whileTap={{ scale: 0.9 }}
                   onClick={playNext}
                   className="w-10 h-10 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/5 transition-all"
-                  aria-label="Next audio"
+                  aria-label={`Play next audio session`}
                 >
                   <SkipForward className="w-5 h-5 fill-current" aria-hidden="true" />
                 </motion.button>
@@ -127,7 +127,7 @@ const StickyMiniPlayer: React.FC<StickyMiniPlayerProps> = ({
               <button
                 onClick={stopAudio}
                 className="w-8 h-8 rounded-full flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 transition-all ml-2"
-                aria-label="Close audio player"
+                aria-label={`Close audio player for ${titleDisplay}`}
               >
                 <X className="w-5 h-5" aria-hidden="true" />
               </button>
