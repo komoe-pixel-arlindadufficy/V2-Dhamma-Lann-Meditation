@@ -60,13 +60,15 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, t }) => {
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div 
+          className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          onClick={onClose}
+        >
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
             className="absolute inset-0 bg-black/80 backdrop-blur-sm"
           />
 
@@ -75,6 +77,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, t }) => {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
+            onClick={(e) => e.stopPropagation()}
             className="relative w-full max-w-sm bg-[#041a13] border border-[#D4AF37]/30 rounded-[2.5rem] overflow-hidden shadow-2xl"
             role="dialog"
             aria-modal="true"
@@ -100,11 +103,11 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, t }) => {
             </div>
 
             {/* Content */}
-            <div className="p-8 flex flex-col items-center gap-8">
+            <div className="p-8 flex flex-col items-center gap-8 text-center">
               {/* QR Code Container */}
               <div className="relative group">
                 <div className="absolute -inset-6 bg-[#D4AF37]/10 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity" />
-                <div className="relative bg-white p-5 rounded-3xl shadow-2xl border-4 border-[#D4AF37]/20">
+                <div className="bg-white p-4 rounded-xl mx-auto inline-block relative shadow-2xl border-4 border-[#D4AF37]/10">
                   <img 
                     src="/qr-code.svg" 
                     alt="QR Code to share website" 
@@ -124,7 +127,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, t }) => {
                 {/* Primary: Share via Apps */}
                 <button
                   onClick={handleNativeShare}
-                  className="w-full flex items-center justify-center gap-3 py-4 bg-[#D4AF37] text-black rounded-2xl font-bold transition-all active:scale-95 hover:bg-[#B8860B] shadow-lg shadow-[#D4AF37]/20"
+                  className="w-full flex items-center justify-center gap-3 py-4 bg-[#D4AF37] text-black rounded-2xl font-bold active:scale-95 transition-transform duration-200 hover:bg-[#B8860B] shadow-lg shadow-[#D4AF37]/20"
                 >
                   <Share2 className="w-5 h-5" />
                   {t.shareViaApps}
@@ -133,7 +136,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, t }) => {
                 {/* Secondary: Copy Link */}
                 <button
                   onClick={handleCopyLink}
-                  className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-bold transition-all active:scale-95 border border-[#D4AF37]/30 ${
+                  className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-bold active:scale-95 transition-transform duration-200 border border-[#D4AF37]/30 ${
                     copied 
                       ? 'bg-green-500/20 text-green-400 border-green-500/50' 
                       : 'bg-white/5 text-white hover:bg-white/10'
