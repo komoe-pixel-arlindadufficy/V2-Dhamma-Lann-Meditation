@@ -272,7 +272,7 @@ const AppContent: React.FC = () => {
     const shareData = {
       title: t.titleEn,
       text: t.audioSubtitle,
-      url: window.location.origin,
+      url: 'https://meditation.dhammalann.org/',
     };
 
     if (navigator.share) {
@@ -534,7 +534,6 @@ const AppContent: React.FC = () => {
         lang={lang}
         setLang={setLang}
         onOpenAdminDashboard={handleAdminClick}
-        onOpenShareModal={handleShare}
         t={t}
       />
 

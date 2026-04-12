@@ -30,7 +30,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, t }) => {
 
   const handleCopyLink = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.origin);
+      await navigator.clipboard.writeText('https://meditation.dhammalann.org/');
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
