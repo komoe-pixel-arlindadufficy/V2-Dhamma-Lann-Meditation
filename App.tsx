@@ -260,6 +260,7 @@ const AppContent: React.FC = () => {
     streakLabel: lang === 'my' ? "ရက်ဆက်တိုက်" : "Day Streak",
     submit: lang === 'my' ? "အတည်ပြုရန်" : "Submit",
     share: lang === 'my' ? "မျှဝေရန်" : "Share",
+    shareViaApps: lang === 'my' ? "အက်ပ်များမှတစ်ဆင့် မျှဝေရန်" : "Share via Apps",
     copyLink: lang === 'my' ? "လင့်ခ်ကို ကူးယူရန်" : "Copy Link",
     copied: lang === 'my' ? "ကူးယူပြီးပါပြီ" : "Copied!"
   }), [lang]);
@@ -268,26 +269,9 @@ const AppContent: React.FC = () => {
     setShowAdminDashboard(true);
   }, []);
 
-  const handleShare = useCallback(async () => {
-    const shareData = {
-      title: t.titleEn,
-      text: t.audioSubtitle,
-      url: 'https://meditation.dhammalann.org/',
-    };
-
-    if (navigator.share) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        // Only show modal if it wasn't a user cancellation
-        if ((err as Error).name !== 'AbortError') {
-          setShowShareModal(true);
-        }
-      }
-    } else {
-      setShowShareModal(true);
-    }
-  }, [t.titleEn, t.audioSubtitle]);
+  const handleShare = useCallback(() => {
+    setShowShareModal(true);
+  }, []);
 
   const handleAdminClose = useCallback(() => {
     setShowAdminDashboard(false);

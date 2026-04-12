@@ -8,6 +8,7 @@ interface ShareModalProps {
   onClose: () => void;
   t: {
     share: string;
+    shareViaApps: string;
     copyLink: string;
     copied: string;
   };
@@ -27,6 +28,24 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, t }) => {
       document.body.style.overflow = 'unset';
     };
   }, [isOpen]);
+
+  const handleNativeShare = async () => {
+    const shareData = {
+      title: 'Dhamma Lann Meditation',
+      text: 'Let\'s walk the Dhamma path together.',
+      url: 'https://meditation.dhammalann.org/',
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        console.error('Error sharing:', err);
+      }
+    } else {
+      handleCopyLink();
+    }
+  };
 
   const handleCopyLink = async () => {
     try {
@@ -67,7 +86,7 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, t }) => {
                 <div className="w-10 h-10 rounded-xl bg-[#D4AF37]/20 flex items-center justify-center">
                   <Share2 className="text-[#D4AF37] w-5 h-5" />
                 </div>
-                <h2 id="share-title" className="text-xl font-bold gold-text">
+                <h2 id="share-title" className="text-xl font-bold gold-text uppercase tracking-tight">
                   {t.share}
                 </h2>
               </div>
@@ -84,50 +103,61 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, t }) => {
             <div className="p-8 flex flex-col items-center gap-8">
               {/* QR Code Container */}
               <div className="relative group">
-                <div className="absolute -inset-4 bg-[#D4AF37]/10 rounded-[2rem] blur-xl opacity-50 group-hover:opacity-100 transition-opacity" />
-                <div className="relative bg-white p-4 rounded-2xl shadow-2xl">
+                <div className="absolute -inset-6 bg-[#D4AF37]/10 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity" />
+                <div className="relative bg-white p-5 rounded-3xl shadow-2xl border-4 border-[#D4AF37]/20">
                   <img 
                     src="/qr-code.svg" 
                     alt="QR Code to share website" 
-                    className="w-48 h-48"
+                    className="w-52 h-52 md:w-64 md:h-64"
                     referrerPolicy="no-referrer"
                     onError={(e) => {
-                      // Fallback if image doesn't exist yet
                       const target = e.target as HTMLImageElement;
-                      target.src = 'https://picsum.photos/seed/qr/200/200';
-                      target.className = 'w-48 h-48 rounded-lg opacity-20';
+                      target.src = 'https://picsum.photos/seed/qr/300/300';
+                      target.className = 'w-52 h-52 rounded-lg opacity-20';
                     }}
                   />
                 </div>
               </div>
 
-              {/* Copy Link Button */}
-              <button
-                onClick={handleCopyLink}
-                className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-bold transition-all active:scale-95 ${
-                  copied 
-                    ? 'bg-green-500 text-white' 
-                    : 'bg-[#D4AF37] text-black hover:bg-[#B8860B]'
-                }`}
-              >
-                {copied ? (
-                  <>
-                    <Check className="w-5 h-5" />
-                    {t.copied}
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-5 h-5" />
-                    {t.copyLink}
-                  </>
-                )}
-              </button>
+              {/* Action Buttons */}
+              <div className="w-full flex flex-col gap-3">
+                {/* Primary: Share via Apps */}
+                <button
+                  onClick={handleNativeShare}
+                  className="w-full flex items-center justify-center gap-3 py-4 bg-[#D4AF37] text-black rounded-2xl font-bold transition-all active:scale-95 hover:bg-[#B8860B] shadow-lg shadow-[#D4AF37]/20"
+                >
+                  <Share2 className="w-5 h-5" />
+                  {t.shareViaApps}
+                </button>
+
+                {/* Secondary: Copy Link */}
+                <button
+                  onClick={handleCopyLink}
+                  className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-bold transition-all active:scale-95 border border-[#D4AF37]/30 ${
+                    copied 
+                      ? 'bg-green-500/20 text-green-400 border-green-500/50' 
+                      : 'bg-white/5 text-white hover:bg-white/10'
+                  }`}
+                >
+                  {copied ? (
+                    <>
+                      <Check className="w-5 h-5" />
+                      {t.copied}
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-5 h-5" />
+                      {t.copyLink}
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Footer */}
             <div className="p-4 bg-white/5 border-t border-white/10 text-center">
               <p className="text-[10px] text-white/40 uppercase tracking-widest font-bold">
-                Share the journey with others
+                Scan to join the Dhamma path
               </p>
             </div>
           </motion.div>
